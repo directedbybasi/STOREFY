@@ -14,23 +14,23 @@ describe("Logger Credential Redaction", () => {
       },
     };
 
-    const redacted = redactSensitiveData(sensitivePayload);
+    const redacted = redactSensitiveData(sensitivePayload) as Record<string, unknown>;
 
     expect(redacted.user).toBe("merchant@example.com");
     expect(redacted.password).toBe("[REDACTED]");
     expect(redacted.token).toBe("[REDACTED]");
-    expect(redacted.nested.key_secret).toBe("[REDACTED]");
-    expect(redacted.nested.encryption_master_key).toBe("[REDACTED]");
-    expect(redacted.nested.safeValue).toBe("public_display_name");
+    expect((redacted.nested as Record<string, unknown>).key_secret).toBe("[REDACTED]");
+    expect((redacted.nested as Record<string, unknown>).encryption_master_key).toBe("[REDACTED]");
+    expect((redacted.nested as Record<string, unknown>).safeValue).toBe("public_display_name");
   });
 
   it("handles arrays and null/undefined values cleanly", () => {
     const payload = [{ secret: "hidden" }, { public: "visible" }, null, undefined];
 
-    const redacted = redactSensitiveData(payload);
+    const redacted = redactSensitiveData(payload) as Array<Record<string, unknown> | null | undefined>;
 
-    expect(redacted[0].secret).toBe("[REDACTED]");
-    expect(redacted[1].public).toBe("visible");
+    expect(redacted[0]?.secret).toBe("[REDACTED]");
+    expect(redacted[1]?.public).toBe("visible");
     expect(redacted[2]).toBeNull();
     expect(redacted[3]).toBeUndefined();
   });
