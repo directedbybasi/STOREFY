@@ -22,7 +22,7 @@ async function runMigrations() {
 
   const migrationClient = postgres(directUrl, {
     max: 1,
-    ssl: process.env.NODE_ENV === "production" ? "require" : undefined,
+    ssl: directUrl.includes("localhost") || directUrl.includes("127.0.0.1") ? undefined : "require",
   });
 
   const db = drizzle(migrationClient);
