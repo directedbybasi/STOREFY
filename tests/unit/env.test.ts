@@ -45,6 +45,20 @@ describe("Environment Validation Schema", () => {
     }
   });
 
+  it("gracefully falls back to defaults when APP_ENV or ROOT_DOMAIN are empty strings", () => {
+    const emptyVars = {
+      NODE_ENV: "production",
+      NEXT_PUBLIC_APP_ENV: "",
+      NEXT_PUBLIC_ROOT_DOMAIN: "",
+    };
+
+    const result = envSchema.safeParse(emptyVars);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.NEXT_PUBLIC_ROOT_DOMAIN).toBe("storefy.shop");
+    }
+  });
+
   it("fails when NEXT_PUBLIC_SUPABASE_URL is not a valid URL", () => {
     const invalid = {
       NODE_ENV: "development",

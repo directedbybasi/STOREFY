@@ -39,9 +39,15 @@ export function isConfigured(value: string | undefined | null): boolean {
 export const envSchema = z.object({
   // Runtime environment
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  NEXT_PUBLIC_APP_ENV: z
-    .enum(["development", "staging", "production", "preview", "test"])
-    .default("development"),
+  NEXT_PUBLIC_APP_ENV: z.preprocess(
+    (val) => {
+      if (typeof val !== "string" || !val.trim()) {
+        return process.env.VERCEL_ENV || "development";
+      }
+      return val.trim();
+    },
+    z.enum(["development", "staging", "production", "preview", "test"]).default("development")
+  ),
 
   // Public application routing
   NEXT_PUBLIC_APP_URL: z.preprocess(
@@ -54,7 +60,10 @@ export const envSchema = z.object({
     },
     z.string().url().default("https://dev.storefy.shop")
   ),
-  NEXT_PUBLIC_ROOT_DOMAIN: z.string().min(1).default("storefy.shop"),
+  NEXT_PUBLIC_ROOT_DOMAIN: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() ? val.trim() : "storefy.shop"),
+    z.string().min(1).default("storefy.shop")
+  ),
 
   // Public Supabase credentials
   NEXT_PUBLIC_SUPABASE_URL: z.preprocess(
