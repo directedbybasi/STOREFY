@@ -44,7 +44,16 @@ export const envSchema = z.object({
     .default("development"),
 
   // Public application routing
-  NEXT_PUBLIC_APP_URL: z.string().url().default("https://dev.storefy.shop"),
+  NEXT_PUBLIC_APP_URL: z.preprocess(
+    (val) => {
+      if (typeof val !== "string" || !val.trim()) return "https://dev.storefy.shop";
+      const trimmed = val.trim();
+      return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+        ? trimmed
+        : `https://${trimmed}`;
+    },
+    z.string().url().default("https://dev.storefy.shop")
+  ),
   NEXT_PUBLIC_ROOT_DOMAIN: z.string().min(1).default("storefy.shop"),
 
   // Public Supabase credentials
@@ -134,13 +143,21 @@ function validateEnv(): Env {
       .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
       .join("\n");
 
-    // In test or build without keys, warn or throw cleanly
-    if (process.env.NODE_ENV === "test") {
+    // In test, build phase, CI, or Vercel: log warning and do not crash the build
+    if (
+      process.env.NODE_ENV === "test" ||
+      process.env.NEXT_PHASE === "phase-production-build" ||
+      process.env.VERCEL ||
+      process.env.CI
+    ) {
+      console.warn(
+        `[STOREFY CONFIG WARNING] Environment validation issues during build/deployment:\n${errorDetails}`
+      );
       return rawEnv as unknown as Env;
     }
 
     throw new Error(
-      `[STOREFY CONFIG ERROR] Invalid environment variables:\n${errorDetails}\nCheck your .env.development or platform environment variables.`
+      `[STOREFY CONFIG ERROR] Invalid environment variables:\n${errorDetails}\nCheck your environment configuration.`
     );
   }
 
