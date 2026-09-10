@@ -1,2 +1,3 @@
-﻿// STOREFY — customers domain module boundary
-export const DOMAIN_NAME = "customers";
+export * from "./validation";
+export * from "./segmentation";
+export * from "./actions";

@@ -23,6 +23,7 @@ import {
   Brush,
   FolderTree,
   Layers,
+  Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -67,18 +68,23 @@ const NAV_GROUPS: NavGroup[] = [
         permission: "catalog:read",
       },
       {
+        title: "Inventory",
+        href: "/dashboard/inventory",
+        icon: Boxes,
+        permission: "inventory:read",
+      },
+      {
         title: "Orders",
         href: "/dashboard/orders",
         icon: ShoppingCart,
         permission: "orders:read",
-        badge: "Phase 6",
+        badge: "Phase 9",
       },
       {
         title: "Customers",
         href: "/dashboard/customers",
         icon: Users,
         permission: "customers:read",
-        badge: "Phase 7",
       },
     ],
   },

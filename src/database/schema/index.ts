@@ -16,3 +16,5 @@ export * from "./navigation";
 export * from "./categories";
 export * from "./products";
 export * from "./collections";
+export * from "./inventory";
+export * from "./customers";
