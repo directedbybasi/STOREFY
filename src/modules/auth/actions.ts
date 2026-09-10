@@ -73,43 +73,81 @@ export async function signUpAction(rawInput: unknown): Promise<AuthActionResult>
     }
   }
 
-  // 1. Register user with Supabase Auth
-  const supabase = await createServerSupabaseClient();
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  // 1. Provision user via Supabase Admin Client with email_confirm: true
+  // This completely bypasses Supabase's built-in confirmation email mechanism, avoiding email rate limits.
+  const adminClient = createAdminClient();
+  let userId: string;
+
+  const { data: adminAuthData, error: adminAuthError } = await adminClient.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
     },
   });
 
-  if (authError || !authData.user) {
-    return {
-      success: false,
-      error: authError?.message || "Failed to create account. Please try again.",
-    };
+  if (adminAuthError || !adminAuthData?.user) {
+    const errorMsg = adminAuthError?.message || "Failed to create account. Please try again.";
+
+    if (
+      errorMsg.toLowerCase().includes("already registered") ||
+      errorMsg.toLowerCase().includes("already exists")
+    ) {
+      // Check if user has an existing organization in STOREFY
+      const [existingOrg] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.billingEmail, email))
+        .limit(1);
+
+      if (existingOrg) {
+        return {
+          success: false,
+          error: "An account with this email already exists. Please sign in instead.",
+        };
+      }
+
+      // If user hit a previous rate-limit during registration and has no organization yet,
+      // recover the existing auth user, confirm email, and update password
+      const { data: listData } = await adminClient.auth.admin.listUsers();
+      const existingAuthUser = listData?.users.find(
+        (u) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+
+      if (existingAuthUser) {
+        await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName },
+        });
+        userId = existingAuthUser.id;
+      } else {
+        return {
+          success: false,
+          error: "An account with this email already exists. Please sign in instead.",
+        };
+      }
+    } else {
+      return {
+        success: false,
+        error: errorMsg,
+      };
+    }
+  } else {
+    userId = adminAuthData.user.id;
   }
 
-  const userId = authData.user.id;
-
-  // 2. Auto-confirm user via privileged admin client so they can access immediately
+  // 2. Establish active session cookies immediately
+  const supabase = await createServerSupabaseClient();
   try {
-    const adminClient = createAdminClient();
-    await adminClient.auth.admin.updateUserById(userId, {
-      email_confirm: true,
-    });
-  } catch (adminErr) {
-    console.warn("[STOREFY ADMIN AUTO-CONFIRM WARNING]", adminErr);
-  }
-
-  // 3. Establish active session cookies immediately
-  try {
-    await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    if (signInError) {
+      console.warn("[STOREFY AUTO SIGN-IN WARNING]", signInError.message);
+    }
   } catch (signInErr) {
     console.warn("[STOREFY AUTO SIGN-IN WARNING]", signInErr);
   }
