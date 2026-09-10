@@ -97,7 +97,7 @@ export default function RegisterPage() {
           {/* Email */}
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs font-semibold text-slate-300">
-              Work Email
+              Email
             </Label>
             <Input
               id="email"

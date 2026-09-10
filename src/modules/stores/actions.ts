@@ -8,7 +8,7 @@ import { stores, storeSettings, staff, storeThemes } from "../../database/schema
 import { eq, and, or, isNull } from "drizzle-orm";
 import { UnauthorizedError, ForbiddenError } from "../../core/errors";
 import { requirePermission } from "../../core/tenant/rbac";
-import { getTenantContext, getAccountContext } from "../../core/tenant/context";
+import { getAccountContext } from "../../core/tenant/context";
 import { CreateStoreSchema } from "../auth/validation";
 import { StoreSettingsSchema } from "./validation";
 
