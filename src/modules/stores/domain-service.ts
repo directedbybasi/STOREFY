@@ -1,6 +1,13 @@
 import { db } from "../../database/client";
 import { stores, storeDomains } from "../../database/schema";
 import { eq } from "drizzle-orm";
+import {
+  normalizeHostname,
+  isPlatformApexDomain,
+  isInternalOrSystemRoute,
+} from "./platform-domains";
+
+export { normalizeHostname, isPlatformApexDomain, isInternalOrSystemRoute };
 
 export interface ResolvedTenant {
   storeId: string;
@@ -10,26 +17,6 @@ export interface ResolvedTenant {
   customDomain: string | null;
   isCustomDomain: boolean;
   isActive: boolean;
-}
-
-/**
- * Normalizes host strings by lowercasing, stripping ports, and removing trailing dots.
- */
-export function normalizeHostname(rawHost: string): string {
-  if (!rawHost) return "";
-  let host = rawHost.trim().toLowerCase();
-
-  // Strip port
-  if (host.includes(":")) {
-    host = host.split(":")[0];
-  }
-
-  // Remove trailing dot
-  if (host.endsWith(".")) {
-    host = host.slice(0, -1);
-  }
-
-  return host;
 }
 
 /**

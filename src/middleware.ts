@@ -1,20 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-/**
- * Normalizes host strings by lowercasing, stripping port, and removing trailing dot.
- */
-function normalizeHostname(rawHost: string): string {
-  if (!rawHost) return "";
-  let host = rawHost.trim().toLowerCase();
-  if (host.includes(":")) {
-    host = host.split(":")[0];
-  }
-  if (host.endsWith(".")) {
-    host = host.slice(0, -1);
-  }
-  return host;
-}
+import {
+  normalizeHostname,
+  isPlatformApexDomain,
+  isInternalOrSystemRoute,
+} from "@/modules/stores/platform-domains";
 
 export async function middleware(request: NextRequest) {
   const rawHost = request.headers.get("host") || "";
@@ -106,23 +96,10 @@ export async function middleware(request: NextRequest) {
   // 4. Public Storefront Tenant Routing & Rewrites
   // If request is on a tenant subdomain or custom domain, rewrite to dynamic storefront route
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "storefy.shop";
-  const isPlatformApex =
-    normalizedHost === "localhost" ||
-    normalizedHost === "127.0.0.1" ||
-    normalizedHost === rootDomain ||
-    normalizedHost === `www.${rootDomain}` ||
-    normalizedHost === "dev.storefy.shop" ||
-    normalizedHost === "staging.storefy.shop";
+  const isPlatformApex = isPlatformApexDomain(normalizedHost, rootDomain);
+  const isSystemRoute = isInternalOrSystemRoute(pathname);
 
-  const isInternalOrSystemRoute =
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/dashboard") ||
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/forgot-password" ||
-    pathname === "/reset-password";
-
-  if (!isPlatformApex && !isInternalOrSystemRoute) {
+  if (!isPlatformApex && !isSystemRoute) {
     // Avoid double rewriting if path already contains the normalized host segment
     if (!pathname.startsWith(`/${normalizedHost}`)) {
       const storefrontUrl = new URL(

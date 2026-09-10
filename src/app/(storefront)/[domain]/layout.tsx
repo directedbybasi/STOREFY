@@ -37,12 +37,18 @@ export default async function StorefrontLayout({
             </code>
             . Please check the URL or contact support.
           </p>
-          <div className="pt-4">
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/"
               className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition"
             >
               Return to Platform
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
+            >
+              Merchant Dashboard
             </Link>
           </div>
         </div>
