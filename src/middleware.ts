@@ -103,6 +103,47 @@ export async function middleware(request: NextRequest) {
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
+  // 4. Public Storefront Tenant Routing & Rewrites
+  // If request is on a tenant subdomain or custom domain, rewrite to dynamic storefront route
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "storefy.shop";
+  const isPlatformApex =
+    normalizedHost === "localhost" ||
+    normalizedHost === "127.0.0.1" ||
+    normalizedHost === rootDomain ||
+    normalizedHost === `www.${rootDomain}` ||
+    normalizedHost === "dev.storefy.shop" ||
+    normalizedHost === "staging.storefy.shop";
+
+  const isInternalOrSystemRoute =
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/dashboard") ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password";
+
+  if (!isPlatformApex && !isInternalOrSystemRoute) {
+    // Avoid double rewriting if path already contains the normalized host segment
+    if (!pathname.startsWith(`/${normalizedHost}`)) {
+      const storefrontUrl = new URL(
+        `/${normalizedHost}${pathname === "/" ? "" : pathname}${request.nextUrl.search}`,
+        request.url
+      );
+      const rewriteResponse = NextResponse.rewrite(storefrontUrl, {
+        request: {
+          headers: requestHeaders,
+        },
+      });
+
+      // Forward security headers
+      rewriteResponse.headers.set("X-Content-Type-Options", "nosniff");
+      rewriteResponse.headers.set("X-Frame-Options", "SAMEORIGIN");
+      rewriteResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+      return rewriteResponse;
+    }
+  }
+
   return response;
 }
 

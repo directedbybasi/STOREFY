@@ -20,6 +20,7 @@ export const stores = pgTable(
     logoUrl: text("logo_url"),
     faviconUrl: text("favicon_url"),
     isActive: boolean("is_active").notNull().default(true),
+    status: varchar("status", { length: 50 }).notNull().default("ACTIVE"), // ACTIVE, MAINTENANCE, SUSPENDED
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

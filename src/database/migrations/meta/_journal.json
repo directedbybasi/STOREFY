@@ -15,6 +15,13 @@
       "when": 1789035369911,
       "tag": "0001_damp_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789037526328,
+      "tag": "0002_moaning_toxin",
+      "breakpoints": true
     }
   ]
 }
