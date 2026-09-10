@@ -1,39 +1,109 @@
 import { z } from "zod";
 
 /**
+ * Known placeholder fragments that should not be considered valid configured values.
+ */
+export const PLACEHOLDER_PATTERNS = [
+  "placeholder",
+  "[ref]",
+  "[pass]",
+  "[pooler-host]",
+  "dev-placeholder",
+  "your-password",
+  "your-project-id",
+];
+
+/**
+ * Sanitizes raw env input: trims whitespace, converts empty strings and placeholders to undefined.
+ */
+export const sanitizeEnvValue = (val: unknown): string | undefined => {
+  if (typeof val !== "string") return undefined;
+  const trimmed = val.trim();
+  if (trimmed.length === 0) return undefined;
+  if (PLACEHOLDER_PATTERNS.some((pattern) => trimmed.toLowerCase().includes(pattern))) {
+    return undefined;
+  }
+  return trimmed;
+};
+
+/**
+ * Checks if an environment variable is present, non-empty, and not a placeholder.
+ */
+export function isConfigured(value: string | undefined | null): boolean {
+  return sanitizeEnvValue(value) !== undefined;
+}
+
+/**
  * Server and Client Environment Variable Validation Schema
  */
-const envSchema = z.object({
+export const envSchema = z.object({
   // Runtime environment
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  NEXT_PUBLIC_APP_ENV: z.enum(["development", "staging", "production"]).default("development"),
+  NEXT_PUBLIC_APP_ENV: z
+    .enum(["development", "staging", "production", "preview", "test"])
+    .default("development"),
 
   // Public application routing
   NEXT_PUBLIC_APP_URL: z.string().url().default("https://dev.storefy.shop"),
   NEXT_PUBLIC_ROOT_DOMAIN: z.string().min(1).default("storefy.shop"),
 
   // Public Supabase credentials
-  NEXT_PUBLIC_SUPABASE_URL: z
-    .string()
-    .url({ message: "NEXT_PUBLIC_SUPABASE_URL must be a valid URL" }),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z
-    .string()
-    .min(10, { message: "NEXT_PUBLIC_SUPABASE_ANON_KEY is required" }),
+  NEXT_PUBLIC_SUPABASE_URL: z.preprocess(
+    sanitizeEnvValue,
+    z.string().url({ message: "NEXT_PUBLIC_SUPABASE_URL must be a valid URL" }).optional()
+  ),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.preprocess(
+    sanitizeEnvValue,
+    z.string().min(10, { message: "NEXT_PUBLIC_SUPABASE_ANON_KEY is required" }).optional()
+  ),
 
   // Server-only credentials (omitted on client)
-  SUPABASE_SERVICE_ROLE_KEY: z
-    .string()
-    .min(10, { message: "SUPABASE_SERVICE_ROLE_KEY is required" })
-    .optional(),
-  DATABASE_URL: z.string().min(10, { message: "DATABASE_URL is required" }).optional(),
-  DIRECT_URL: z.string().min(10, { message: "DIRECT_URL is required" }).optional(),
-  ENCRYPTION_MASTER_KEY: z
-    .string()
-    .length(64, { message: "ENCRYPTION_MASTER_KEY must be a 64-character hex string (32 bytes)" })
-    .optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.preprocess(
+    sanitizeEnvValue,
+    z.string().min(10, { message: "SUPABASE_SERVICE_ROLE_KEY is required" }).optional()
+  ),
+  DATABASE_URL: z.preprocess(
+    sanitizeEnvValue,
+    z.string().min(10, { message: "DATABASE_URL is required" }).optional()
+  ),
+  DIRECT_URL: z.preprocess(
+    sanitizeEnvValue,
+    z.string().min(10, { message: "DIRECT_URL is required" }).optional()
+  ),
+  ENCRYPTION_MASTER_KEY: z.preprocess(
+    sanitizeEnvValue,
+    z
+      .string()
+      .length(64, { message: "ENCRYPTION_MASTER_KEY must be a 64-character hex string (32 bytes)" })
+      .optional()
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;
+
+export interface EnvDiagnostics {
+  supabaseUrlConfigured: boolean;
+  supabaseAnonKeyConfigured: boolean;
+  serviceRoleConfigured: boolean;
+  databaseConfigured: boolean;
+  directUrlConfigured: boolean;
+  encryptionKeyConfigured: boolean;
+}
+
+/**
+ * Safe runtime diagnostic reporting ONLY boolean presence of the 6 core variables.
+ * NEVER exposes or returns actual secrets.
+ */
+export function getEnvDiagnostics(): EnvDiagnostics {
+  return {
+    supabaseUrlConfigured: isConfigured(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    supabaseAnonKeyConfigured: isConfigured(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    serviceRoleConfigured: isConfigured(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    databaseConfigured: isConfigured(process.env.DATABASE_URL),
+    directUrlConfigured: isConfigured(process.env.DIRECT_URL),
+    encryptionKeyConfigured: isConfigured(process.env.ENCRYPTION_MASTER_KEY),
+  };
+}
 
 /**
  * Validates and caches environment variables.
@@ -66,7 +136,7 @@ function validateEnv(): Env {
 
     // In test or build without keys, warn or throw cleanly
     if (process.env.NODE_ENV === "test") {
-      return rawEnv as Env;
+      return rawEnv as unknown as Env;
     }
 
     throw new Error(
