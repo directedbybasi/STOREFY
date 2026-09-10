@@ -136,19 +136,20 @@ graph TD
 
 ---
 
-### PHASE 5: Visual Store Builder and Theme System
+### PHASE 5: STOREFY Theme Customizer
 
 - **Prerequisites:** Phase 3, Phase 4.
-- **Objective:** Implement the drag-and-drop visual storefront builder with live canvas and theme versioning.
+- **Objective:** Implement the Shopify-style visual storefront customization system with section & block hierarchy, live canvas, preset library, responsive controls, theme settings, and atomic theme revisioning/rollback.
 - **Deliverables:**
-  - Builder workspace layout: Top toolbar, left element/section drawer, center responsive canvas, right settings panel.
-  - Interactive canvas with viewport switching (Desktop, Tablet, Mobile).
-  - 8 core element categories (Basic, Media, Layout, Commerce, Marketing, Social, Business).
-  - Pre-built section library (Heros, Product Grids, Testimonials, FAQ, Contact).
-  - In-memory Undo/Redo history stack (up to 50 actions).
-  - Theme revisioning engine: Draft saving, atomic `publish`, and one-click `rollback`.
-  - Dynamic data binding evaluator (`{{ Product.title }}`, `{{ Product.price }}`).
-- **Exit Criteria:** Merchant can construct custom layouts visually, publish them, and observe instant updates on the live storefront; rollback restores prior version cleanly.
+  - Theme Customizer 3-panel workspace: Top toolbar (template, viewports, undo/redo, preview, save, publish), Left panel (Sections, Blocks, Templates, Theme Settings), Center live canvas (Shared Storefront Renderer), Right contextual inspector (Section / Block / Theme settings).
+  - Canonical `Theme -> Template -> Section -> Block -> Element/Content` AST hierarchy.
+  - Pre-built section library across 6 core categories (Hero, Content, Commerce, Trust, Marketing, Business).
+  - Responsive editing system (Desktop, Tablet, Mobile) with inherited defaults and breakpoint overrides.
+  - In-memory Undo/Redo history stack (minimum 50 actions).
+  - Copy, paste, duplicate, reorder, hide, lock operations with unique ID regeneration.
+  - Whitelist dynamic data binding evaluator (`{{ store.* }}`, future `{{ product.* }}`, `{{ collection.* }}`).
+  - Theme revisioning engine: Draft saving, atomic `publish`, and one-click immutable `rollback`.
+- **Exit Criteria:** Merchant can construct custom layouts visually, publish them atomically, and observe instant updates on the live storefront; rollback restores prior versions cleanly without history mutation.
 
 ---
 

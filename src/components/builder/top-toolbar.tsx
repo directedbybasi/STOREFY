@@ -64,6 +64,7 @@ export function TopToolbar({
     { key: "collections", label: "Collections" },
     { key: "about", label: "About Page" },
     { key: "contact", label: "Contact Page" },
+    { key: "custom", label: "Custom Page" },
   ];
 
   return (

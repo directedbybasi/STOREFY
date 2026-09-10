@@ -14,6 +14,7 @@ interface LiveCanvasProps {
   selectedBlockId?: string;
   onSelectSection: (id: string) => void;
   onSelectBlock: (id: string) => void;
+  onInlineUpdateBlock?: (sectionId: string, blockId: string, field: string, value: string) => void;
   themeSettings: StoreThemeSettings;
   storeContext: BindingContext;
 }
@@ -25,6 +26,7 @@ export function LiveCanvas({
   selectedBlockId,
   onSelectSection,
   onSelectBlock,
+  onInlineUpdateBlock,
   themeSettings,
   storeContext,
 }: LiveCanvasProps) {
@@ -70,6 +72,7 @@ export function LiveCanvas({
                 selectedBlockId={selectedBlockId}
                 onSelectSection={onSelectSection}
                 onSelectBlock={onSelectBlock}
+                onInlineUpdateBlock={onInlineUpdateBlock}
                 context={storeContext}
               />
             ))}

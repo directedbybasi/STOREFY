@@ -57,31 +57,22 @@ export interface BlockNode {
 
 ## 2. Canonical Section & Block Library
 
-### 19 Configurable Sections
-Across 8 canonical categories (Basic, Media, Layout, Commerce, Marketing, Social, Business, Utility):
+### 19 Canonical Section Presets
+Across the 6 canonical categories:
+- **HERO:** Hero (`hero`), Hero with Image (`hero_image`), Hero with Video (`hero_video`).
+- **CONTENT:** Rich Text (`rich_text`), Image + Text (`image_text`), Feature Grid (`feature_grid` / `multicolumn`), Image Gallery (`image_gallery`).
+- **COMMERCE:** Product Grid (`product_grid`), Featured Collection (`featured_collection`), Collection Grid (`collection_grid`).
+- **TRUST:** Testimonials (`testimonials`), Trust Badges (`trust_badges`), Reviews (`reviews`).
+- **MARKETING:** Announcement Bar (`announcement_bar`), Promo Banner (`promo_banner`), Countdown Timer (`countdown`), Newsletter (`newsletter`), Call to Action (`cta`).
+- **BUSINESS:** Contact & Care (`contact`), FAQ Accordion (`faq`), Logo List (`logo_list`), Social Links (`social_links`).
 
-1. **Hero**: Prominent banner with title, subtitle, CTA buttons, and split/stacked layouts.
-2. **Image + Text**: Editorial split layout with media alongside rich narrative.
-3. **Rich Text**: Centered or aligned longform prose with custom typography scale.
-4. **Featured Collection**: Merchant collection showcase with quick-navigation into catalog.
-5. **Product Grid**: Multi-column catalog layout activating seamlessly with Phase 6.
-6. **Collection Grid**: Category discovery cards highlighting store collections.
-7. **Testimonials**: Customer review cards with verified buyer badges and star ratings.
-8. **FAQ**: Interactive accordion dropdowns for merchant question-and-answer resolution.
-9. **Logo List**: Partner, supplier, and media recognition banners.
-10. **Announcement Bar**: Top-of-store promotional and operational notification strip.
-11. **Newsletter**: Lead-capture newsletter form with email validation.
-12. **Contact**: Store hours, email, location details, and direct merchant connect.
-13. **Video**: High-impact playable video banner with backdrop overlay.
-14. **Image Gallery**: Multi-image curated product or brand showcase.
-15. **Promo Banner**: Highlighted discount coupon codes with copy-to-clipboard hints.
-16. **Countdown**: Urgency and drop countdown timers with live clock increments.
-17. **Multicolumn Features**: 2, 3, or 4-column value proposition blocks (e.g. Express Delivery, Pan-India).
-18. **Split Content**: Balanced 50/50 dual-purpose section for brand story and imagery.
-19. **Call to Action (CTA)**: High-conversion closing banner driving checkout or catalog visits.
+### 18 Canonical Block Types
+`heading`, `text`, `rich_text`, `button`, `image`, `icon`, `product`, `collection`, `price`, `rating`, `social_link`, `feature`, `testimonial`, `video`, `spacer`, `divider`, `faq_item`, `badge`.
 
-### Allowed Block System
-Each section explicitly restricts allowed blocks (e.g., FAQ sections only accept `faq_item`, Testimonials only accept `testimonial`, Hero accepts `heading`, `text`, `button`, and `image`). This prevents invalid or corrupt tree hierarchies.
+### Section & Block Operations
+- **Section Operations:** Add, remove, reorder (drag & accessible Up/Down), duplicate, copy, paste, hide/show, lock/unlock, edit settings.
+- **Block Operations:** Add (from section's `allowedBlocks`), remove, reorder (move Up/Down), duplicate, copy, paste, hide/show, lock/unlock, edit content and typography.
+- **ID Regeneration Invariant:** Copying and duplicating sections or blocks always regenerates fresh, unique UUIDs/nanoids for the target and all child nodes. IDs are never duplicated.
 
 ---
 
@@ -206,9 +197,9 @@ Every database mutation resolves tenant context exclusively via `requirePermissi
 
 | Suite | Status | Details |
 | :--- | :---: | :--- |
-| **Unit Tests** | Passed | 20 test files, 132 tests passing (`vitest run`) |
+| **Unit Tests** | Passed | 20 test files, 134 tests passing (`vitest run`) |
 | **TypeScript** | Passed | `tsc --noEmit` exited with code 0 (0 errors) |
 | **ESLint** | Passed | `eslint .` exited with code 0 (0 errors, 0 warnings) |
-| **Production Build** | Passed | `next build` succeeded with all static & dynamic routes |
-| **Database Verification** | Passed | `npm run db:verify` latency 1254ms against hosted Supabase |
+| **Production Build** | Passed | `next build` succeeded with all 23 static & dynamic routes |
+| **Database Verification** | Passed | `npm run db:verify` latency 1574ms against hosted Supabase |
 | **Database Migrations** | Passed | `0003_clever_jetstream.sql` applied successfully |
