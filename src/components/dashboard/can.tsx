@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
-import type { TenantContext } from "@/core/tenant/types";
+import type { AccountContext, TenantContextStore } from "@/core/tenant/types";
 
 export interface AuthorizedStoreItem {
   id: string;
@@ -12,8 +12,10 @@ export interface AuthorizedStoreItem {
   roleName: string;
 }
 
+export type DashboardTenantContext = AccountContext & { store?: TenantContextStore | null };
+
 export interface DashboardContextValue {
-  tenant: TenantContext;
+  tenant: DashboardTenantContext;
   authorizedStores: AuthorizedStoreItem[];
 }
 

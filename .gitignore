@@ -42,3 +42,6 @@ Thumbs.db
 # TypeScript Cache
 *.tsbuildinfo
 next-env.d.ts
+
+# Scratch / Temporary local scripts
+/scratch/

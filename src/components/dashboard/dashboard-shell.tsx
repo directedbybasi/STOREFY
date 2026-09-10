@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { DashboardProvider, type AuthorizedStoreItem } from "./can";
+import { DashboardProvider, type AuthorizedStoreItem, type DashboardTenantContext } from "./can";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardHeader } from "./dashboard-header";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import type { TenantContext } from "@/core/tenant/types";
 
 interface DashboardShellProps {
-  tenant: TenantContext;
+  tenant: DashboardTenantContext;
   authorizedStores: AuthorizedStoreItem[];
   children: React.ReactNode;
 }

@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  AccountSignUpSchema,
+  CreateStoreSchema,
   SignUpSchema,
   SignInSchema,
   SubdomainSchema,
@@ -104,6 +106,58 @@ describe("Authentication & Registration Validation", () => {
       if (!res.success) {
         expect(res.error.errors[0].message).toBe("Passwords do not match");
       }
+    });
+  });
+
+  describe("AccountSignUpSchema (Account-First)", () => {
+    it("accepts valid account-first registration input without store details", () => {
+      const valid = {
+        fullName: "Priya Patel",
+        email: "priya@example.com",
+        password: "SecurePassword123",
+        confirmPassword: "SecurePassword123",
+      };
+      expect(AccountSignUpSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it("rejects mismatched confirm password", () => {
+      const mismatch = {
+        fullName: "Priya Patel",
+        email: "priya@example.com",
+        password: "SecurePassword123",
+        confirmPassword: "WrongPassword123",
+      };
+      const res = AccountSignUpSchema.safeParse(mismatch);
+      expect(res.success).toBe(false);
+      if (!res.success) {
+        expect(res.error.errors[0].message).toBe("Passwords do not match");
+      }
+    });
+
+    it("rejects passwords lacking uppercase or number", () => {
+      const noUpper = {
+        fullName: "Priya Patel",
+        email: "priya@example.com",
+        password: "alllowercase123",
+        confirmPassword: "alllowercase123",
+      };
+      expect(AccountSignUpSchema.safeParse(noUpper).success).toBe(false);
+    });
+  });
+
+  describe("CreateStoreSchema", () => {
+    it("accepts valid store name and subdomain", () => {
+      const valid = {
+        name: "Aura Botanicals",
+        subdomain: "aura-botanicals",
+      };
+      expect(CreateStoreSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it("rejects invalid or reserved subdomains", () => {
+      expect(CreateStoreSchema.safeParse({ name: "Aura", subdomain: "admin" }).success).toBe(false);
+      expect(CreateStoreSchema.safeParse({ name: "Aura", subdomain: "ab" }).success).toBe(false);
+      expect(CreateStoreSchema.safeParse({ name: "Aura", subdomain: "invalid_sub!" }).success).toBe(false);
     });
   });
 });

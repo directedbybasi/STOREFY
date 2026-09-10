@@ -2,32 +2,27 @@ import { cookies, headers } from "next/headers";
 import { createServerSupabaseClient } from "../../lib/supabase/server";
 import { db } from "../../database/client";
 import { users, organizations, stores, staff, roles, rolePermissions, permissions } from "../../database/schema";
-import { eq, and, or, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { UnauthorizedError, ForbiddenError, NotFoundError } from "../errors";
-import type { TenantContext } from "./types";
+import type { TenantContext, AccountContext } from "./types";
 
 /**
- * Resolves the active authenticated user and strictly verifies their tenant context.
- *
- * CRITICAL ZERO-TRUST SECURITY INVARIANT:
- * Client-provided store IDs or headers (x-store-id, cookies) are NEVER trusted blindly.
- * The server must independently verify in the hosted database that the authenticated user
- * has an active staff record granting membership to the target store.
+ * Resolves the authenticated merchant's user account and organization context.
+ * Strictly verifies identity and staff membership at the organization level.
+ * Always succeeds if user is authenticated and belongs to an organization,
+ * even when zero stores exist yet (supporting account-first onboarding).
  */
-export async function getTenantContext(targetStoreId?: string): Promise<TenantContext> {
-  // 1. Authenticate user from secure cookie session
+export async function getAccountContext(): Promise<AccountContext> {
   const supabase = await createServerSupabaseClient();
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authUser) {
-    throw new UnauthorizedError("Authentication required to access this merchant resource");
+    throw new UnauthorizedError("Authentication required to access merchant resources");
   }
 
-  // 2. Fetch or sync user from public.users table
   let [dbUser] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
 
   if (!dbUser) {
-    // Fallback sync if trigger had not fired yet
     const [insertedUser] = await db
       .insert(users)
       .values({
@@ -44,80 +39,34 @@ export async function getTenantContext(targetStoreId?: string): Promise<TenantCo
     dbUser = insertedUser;
   }
 
-  // 3. Resolve target store ID
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-
-  const resolvedStoreId =
-    targetStoreId ||
-    headerStore.get("x-store-id") ||
-    cookieStore.get("storefy_active_store_id")?.value;
-
-  // 4. Query staff memberships for this user
-  // If a specific store was requested, verify access to that specific store
-  const staffQuery = db
+  const staffList = await db
     .select({
       staff: staff,
       organization: organizations,
-      store: stores,
       role: roles,
     })
     .from(staff)
     .innerJoin(organizations, eq(staff.organizationId, organizations.id))
-    .leftJoin(
-      stores,
-      resolvedStoreId
-        ? eq(stores.id, resolvedStoreId)
-        : eq(stores.organizationId, organizations.id)
-    )
     .innerJoin(roles, eq(staff.roleId, roles.id))
-    .where(
-      and(
-        eq(staff.userId, dbUser.id),
-        eq(staff.isActive, true),
-        // If staff.storeId is specified, it must match the resolved store, or be NULL (all stores in org)
-        resolvedStoreId
-          ? or(isNull(staff.storeId), eq(staff.storeId, resolvedStoreId))
-          : undefined
-      )
-    );
+    .where(and(eq(staff.userId, dbUser.id), eq(staff.isActive, true)));
 
-  const memberships = await staffQuery;
-
-  if (!memberships || memberships.length === 0) {
-    throw new ForbiddenError("You do not have authorized staff access to any store or organization");
+  if (!staffList || staffList.length === 0) {
+    throw new ForbiddenError("You do not have staff access to any organization");
   }
 
-  // Find the exact matching store membership
-  const activeMembership = resolvedStoreId
-    ? memberships.find((m) => m.store?.id === resolvedStoreId)
-    : memberships.find((m) => m.store !== null) || memberships[0];
-
-  if (!activeMembership || !activeMembership.store) {
-    throw new NotFoundError("Store", resolvedStoreId || "active");
-  }
-
-  // Double-check store organization alignment
-  if (activeMembership.store.organizationId !== activeMembership.organization.id) {
-    throw new ForbiddenError("Security violation: Store does not belong to active organization");
-  }
-
-  // 5. Resolve permissions
-  const isOwner = activeMembership.role.name === "OWNER";
+  const activeStaff = staffList[0];
+  const isOwner = activeStaff.role.name === "OWNER";
   let permissionSet = new Set<string>();
 
   if (isOwner || dbUser.isPlatformAdmin) {
-    // Owner / Platform Admin has all permissions
     const allPerms = await db.select({ code: permissions.code }).from(permissions);
     permissionSet = new Set(allPerms.map((p) => p.code));
   } else {
-    // Fetch assigned permissions via role_permissions
     const rolePerms = await db
       .select({ code: permissions.code })
       .from(rolePermissions)
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(rolePermissions.roleId, activeMembership.role.id));
-
+      .where(eq(rolePermissions.roleId, activeStaff.role.id));
     permissionSet = new Set(rolePerms.map((p) => p.code));
   }
 
@@ -130,32 +79,136 @@ export async function getTenantContext(targetStoreId?: string): Promise<TenantCo
       isPlatformAdmin: dbUser.isPlatformAdmin,
     },
     organization: {
-      id: activeMembership.organization.id,
-      name: activeMembership.organization.name,
-      slug: activeMembership.organization.slug,
-      billingEmail: activeMembership.organization.billingEmail,
-    },
-    store: {
-      id: activeMembership.store.id,
-      organizationId: activeMembership.store.organizationId,
-      name: activeMembership.store.name,
-      slug: activeMembership.store.slug,
-      subdomain: activeMembership.store.subdomain,
-      customDomain: activeMembership.store.customDomain,
-      currency: activeMembership.store.currency,
-      timezone: activeMembership.store.timezone,
-      isActive: activeMembership.store.isActive,
+      id: activeStaff.organization.id,
+      name: activeStaff.organization.name,
+      slug: activeStaff.organization.slug,
+      billingEmail: activeStaff.organization.billingEmail,
     },
     staff: {
-      id: activeMembership.staff.id,
-      roleId: activeMembership.staff.roleId,
-      isActive: activeMembership.staff.isActive,
+      id: activeStaff.staff.id,
+      roleId: activeStaff.staff.roleId,
+      isActive: activeStaff.staff.isActive,
     },
     role: {
-      id: activeMembership.role.id,
-      name: activeMembership.role.name,
+      id: activeStaff.role.id,
+      name: activeStaff.role.name,
     },
     permissions: permissionSet,
     isOwner,
   };
 }
+
+/**
+ * Resolves active tenant context for store-scoped operations.
+ * Independently validates staff membership and access to targetStoreId.
+ * Throws NotFoundError("Store") if no stores exist in the organization or
+ * if an invalid/unauthorized store ID is provided.
+ */
+export async function getTenantContext(targetStoreId?: string): Promise<TenantContext> {
+  const account = await getAccountContext();
+
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const resolvedStoreId =
+    targetStoreId ||
+    headerStore.get("x-store-id") ||
+    cookieStore.get("storefy_active_store_id")?.value;
+
+  // Query stores for this organization
+  const orgStores = await db
+    .select()
+    .from(stores)
+    .where(eq(stores.organizationId, account.organization.id));
+
+  if (!orgStores || orgStores.length === 0) {
+    throw new NotFoundError("Store", resolvedStoreId || "active");
+  }
+
+  let matchingStore: typeof stores.$inferSelect | undefined;
+  if (resolvedStoreId) {
+    matchingStore = orgStores.find((s) => s.id === resolvedStoreId);
+    if (!matchingStore) {
+      throw new NotFoundError("Store", resolvedStoreId);
+    }
+  } else {
+    matchingStore = orgStores.find((s) => s.isActive) || orgStores[0];
+  }
+
+  if (!matchingStore) {
+    throw new NotFoundError("Store", "active");
+  }
+
+  return {
+    ...account,
+    store: {
+      id: matchingStore.id,
+      organizationId: matchingStore.organizationId,
+      name: matchingStore.name,
+      slug: matchingStore.slug,
+      subdomain: matchingStore.subdomain,
+      customDomain: matchingStore.customDomain,
+      currency: matchingStore.currency,
+      timezone: matchingStore.timezone,
+      isActive: matchingStore.isActive,
+    },
+  };
+}
+
+/**
+ * Resolves optional tenant context for dashboard shells and general views.
+ * If the organization has zero stores, returns tenant as null while providing
+ * the verified account context.
+ */
+export async function getOptionalTenantContext(targetStoreId?: string): Promise<{
+  account: AccountContext;
+  tenant: TenantContext | null;
+}> {
+  const account = await getAccountContext();
+
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const resolvedStoreId =
+    targetStoreId ||
+    headerStore.get("x-store-id") ||
+    cookieStore.get("storefy_active_store_id")?.value;
+
+  // Query stores for this organization
+  const orgStores = await db
+    .select()
+    .from(stores)
+    .where(eq(stores.organizationId, account.organization.id));
+
+  if (!orgStores || orgStores.length === 0) {
+    return { account, tenant: null };
+  }
+
+  let matchingStore: typeof stores.$inferSelect | undefined;
+  if (resolvedStoreId) {
+    matchingStore = orgStores.find((s) => s.id === resolvedStoreId);
+  }
+  if (!matchingStore) {
+    matchingStore = orgStores.find((s) => s.isActive) || orgStores[0];
+  }
+
+  if (!matchingStore) {
+    return { account, tenant: null };
+  }
+
+  const tenant: TenantContext = {
+    ...account,
+    store: {
+      id: matchingStore.id,
+      organizationId: matchingStore.organizationId,
+      name: matchingStore.name,
+      slug: matchingStore.slug,
+      subdomain: matchingStore.subdomain,
+      customDomain: matchingStore.customDomain,
+      currency: matchingStore.currency,
+      timezone: matchingStore.timezone,
+      isActive: matchingStore.isActive,
+    },
+  };
+
+  return { account, tenant };
+}
+

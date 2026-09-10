@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { getTenantContext } from "@/core/tenant/context";
+import { getOptionalTenantContext } from "@/core/tenant/context";
 import { db } from "@/database/client";
 import { stores, storeDomains, staff, storeSettings } from "@/database/schema";
 import { eq } from "drizzle-orm";
@@ -22,10 +22,82 @@ import {
   Globe,
   UserPlus,
   HelpCircle,
+  Sparkles,
+  ArrowRight,
+  Layers,
 } from "lucide-react";
 
 export default async function DashboardPage() {
-  const ctx = await getTenantContext();
+  const { account, tenant } = await getOptionalTenantContext();
+
+  // If merchant has not created any stores yet, render the onboarding welcome view
+  if (!tenant) {
+    return (
+      <div className="space-y-8 max-w-4xl mx-auto py-8">
+        <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 p-8 sm:p-12 shadow-2xl text-center space-y-6">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <Sparkles className="h-8 w-8" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Welcome to STOREFY, {account.user.fullName || "Merchant"}!
+            </h1>
+            <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
+              Your merchant account and organization (
+              <span className="text-slate-200 font-medium">{account.organization.name}</span>
+              ) are active. Create your first online store to begin building your visual storefront, adding products, and taking orders.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
+            <Button asChild size="lg" className="bg-emerald-500 text-slate-950 font-bold hover:bg-emerald-400 shadow-lg px-8">
+              <Link href="/onboarding">
+                <Store className="mr-2 h-4 w-4" />
+                <span>Create Your First Store</span>
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Multi-Store Value Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-2.5">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
+              <Layers className="h-4 w-4" />
+              <span>Multi-Store Architecture</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Manage multiple independent brand storefronts from this single account and organization with unified billing.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-2.5">
+            <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs">
+              <Store className="h-4 w-4" />
+              <span>Theme Customizer</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Build your storefront with our Shopify-style section and block editor, live canvas, and real-time preview.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-2.5">
+            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs">
+              <Globe className="h-4 w-4" />
+              <span>Custom Domains & SSL</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Connect your own custom domains or use your free .storefy.shop subdomain with automatic SSL and CDN caching.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const ctx = tenant;
 
   // Real database metrics from hosted PostgreSQL instance
   const [storeCountResult] = await db

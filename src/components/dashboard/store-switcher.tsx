@@ -32,7 +32,7 @@ export function StoreSwitcher() {
   const activeStore = tenant.store;
 
   const handleSwitch = (store: AuthorizedStoreItem) => {
-    if (store.id === activeStore.id) return;
+    if (activeStore && store.id === activeStore.id) return;
 
     startTransition(async () => {
       const result = await switchStoreAction(store.id);
@@ -64,6 +64,104 @@ export function StoreSwitcher() {
     });
   };
 
+  // If no store exists at all, render direct Create Store button
+  if (!activeStore && authorizedStores.length === 0) {
+    return (
+      <>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCreateDialogOpen(true)}
+          className="flex h-9 items-center gap-2 border-emerald-800/80 bg-emerald-950/40 px-3 text-xs font-semibold text-emerald-400 hover:bg-emerald-900/50 hover:text-emerald-300 transition"
+        >
+          <Plus className="h-3.5 w-3.5 text-emerald-400" />
+          <span>Create Store</span>
+        </Button>
+
+        {/* Add New Store Dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="border-slate-800 bg-slate-900 text-slate-100 sm:max-w-md">
+            <form onSubmit={handleCreateStore}>
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold text-white">
+                  Create First Store
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-400">
+                  Provision your initial storefront under {tenant.organization.name}.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {createError && (
+                  <p className="rounded bg-rose-950/50 p-2 text-xs text-rose-300 border border-rose-900/50">
+                    {createError}
+                  </p>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="newStoreName" className="text-xs text-slate-300">
+                    Store Name
+                  </Label>
+                  <Input
+                    id="newStoreName"
+                    value={newStoreName}
+                    onChange={(e) => {
+                      setNewStoreName(e.target.value);
+                      setNewSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-"));
+                    }}
+                    placeholder="Artisan Leather"
+                    required
+                    disabled={isPending}
+                    className="border-slate-800 bg-slate-950 text-slate-100"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="newSubdomain" className="text-xs text-slate-300">
+                    Subdomain URL
+                  </Label>
+                  <div className="flex items-center rounded-md border border-slate-800 bg-slate-950 px-3 py-1.5">
+                    <input
+                      id="newSubdomain"
+                      value={newSubdomain}
+                      onChange={(e) => setNewSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                      placeholder="artisan-leather"
+                      required
+                      disabled={isPending}
+                      className="w-full bg-transparent text-xs text-slate-100 outline-none"
+                    />
+                    <span className="text-xs font-medium text-slate-500">.storefy.shop</span>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCreateDialogOpen(false)}
+                  className="text-xs text-slate-400"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isPending || !newStoreName || !newSubdomain}
+                  className="bg-emerald-500 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
+                >
+                  {isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                  Provision Store
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -79,7 +177,7 @@ export function StoreSwitcher() {
             </div>
             <div className="flex flex-col text-left">
               <span className="max-w-[120px] truncate font-medium sm:max-w-[160px]">
-                {activeStore.name}
+                {activeStore ? activeStore.name : "Select Store"}
               </span>
             </div>
             {isPending ? (
@@ -102,7 +200,7 @@ export function StoreSwitcher() {
 
           <div className="max-h-60 overflow-y-auto space-y-1">
             {authorizedStores.map((store) => {
-              const isSelected = store.id === activeStore.id;
+              const isSelected = activeStore ? store.id === activeStore.id : false;
               return (
                 <DropdownMenuItem
                   key={store.id}

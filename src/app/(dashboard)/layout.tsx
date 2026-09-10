@@ -1,5 +1,5 @@
 import React from "react";
-import { getTenantContext } from "@/core/tenant/context";
+import { getOptionalTenantContext } from "@/core/tenant/context";
 import { db } from "@/database/client";
 import { stores, staff, roles } from "@/database/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
@@ -16,8 +16,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 1. Resolve and verify active tenant context server-side
-  const tenant = await getTenantContext();
+  // 1. Resolve and verify active account / tenant context server-side
+  const { account, tenant } = await getOptionalTenantContext();
 
   // 2. Fetch all stores in the organization that this user is authorized to access
   const membershipQuery = await db
@@ -29,14 +29,14 @@ export default async function DashboardLayout({
     .innerJoin(
       staff,
       and(
-        eq(staff.organizationId, tenant.organization.id),
-        eq(staff.userId, tenant.user.id),
+        eq(staff.organizationId, account.organization.id),
+        eq(staff.userId, account.user.id),
         eq(staff.isActive, true),
         or(isNull(staff.storeId), eq(staff.storeId, stores.id))
       )
     )
     .innerJoin(roles, eq(staff.roleId, roles.id))
-    .where(eq(stores.organizationId, tenant.organization.id));
+    .where(eq(stores.organizationId, account.organization.id));
 
   // Deduplicate stores in case user has both org-wide and store-specific staff rows
   const storeMap = new Map<string, AuthorizedStoreItem>();
@@ -53,8 +53,8 @@ export default async function DashboardLayout({
     }
   }
 
-  // Ensure current store is always in the list
-  if (!storeMap.has(tenant.store.id)) {
+  // Ensure current store is always in the list if one is active
+  if (tenant?.store && !storeMap.has(tenant.store.id)) {
     storeMap.set(tenant.store.id, {
       id: tenant.store.id,
       name: tenant.store.name,
@@ -66,9 +66,10 @@ export default async function DashboardLayout({
   }
 
   const authorizedStores = Array.from(storeMap.values());
+  const shellTenant = tenant || { ...account, store: null };
 
   return (
-    <DashboardShell tenant={tenant} authorizedStores={authorizedStores}>
+    <DashboardShell tenant={shellTenant} authorizedStores={authorizedStores}>
       {children}
     </DashboardShell>
   );

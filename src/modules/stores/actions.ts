@@ -4,11 +4,12 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "../../lib/supabase/server";
 import { db } from "../../database/client";
-import { stores, storeSettings, staff } from "../../database/schema";
+import { stores, storeSettings, staff, storeThemes } from "../../database/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { UnauthorizedError, ForbiddenError } from "../../core/errors";
 import { requirePermission } from "../../core/tenant/rbac";
 import { getTenantContext } from "../../core/tenant/context";
+import { CreateStoreSchema } from "../auth/validation";
 import { z } from "zod";
 
 export const StoreSettingsSchema = z.object({
@@ -180,9 +181,19 @@ export async function updateStoreSettingsAction(rawInput: unknown) {
 }
 
 /**
- * Creates an additional store within the merchant's active organization.
+ * Creates a new store within the merchant's active organization.
+ * Supports provisioning the first store (after signup/onboarding) as well as
+ * provisioning additional stores (multi-store merchant model).
  */
 export async function createStoreAction(input: { name: string; subdomain: string }) {
+  const parseResult = CreateStoreSchema.safeParse(input);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: parseResult.error.errors[0]?.message || "Invalid store data",
+    };
+  }
+
   const ctx = await getTenantContext();
   if (!ctx.isOwner && !ctx.permissions.has("settings:manage")) {
     throw new ForbiddenError("Only organization owners or administrators can provision new stores");
@@ -200,41 +211,57 @@ export async function createStoreAction(input: { name: string; subdomain: string
   if (existing) {
     return {
       success: false,
-      error: `Subdomain '${normalizedSubdomain}' is already taken.`,
+      error: `Subdomain '${normalizedSubdomain}' is already taken. Please choose another name.`,
     };
   }
 
-  // Insert store
-  const [newStore] = await db
-    .insert(stores)
-    .values({
-      organizationId: ctx.organization.id,
-      name: input.name,
-      slug: normalizedSubdomain,
-      subdomain: normalizedSubdomain,
-      currency: "INR",
-      timezone: "Asia/Kolkata",
+  try {
+    // 1. Insert store
+    const [newStore] = await db
+      .insert(stores)
+      .values({
+        organizationId: ctx.organization.id,
+        name: input.name.trim(),
+        slug: normalizedSubdomain,
+        subdomain: normalizedSubdomain,
+        currency: "INR",
+        timezone: "Asia/Kolkata",
+        isActive: true,
+      })
+      .returning();
+
+    // 2. Create default store operational settings
+    await db.insert(storeSettings).values({
+      storeId: newStore.id,
+      codEnabled: true,
+      taxInclusive: true,
+    });
+
+    // 3. Create default active theme record
+    await db.insert(storeThemes).values({
+      storeId: newStore.id,
+      name: "Modern Minimal",
       isActive: true,
-    })
-    .returning();
+      version: 1,
+    });
 
-  // Create default store settings
-  await db.insert(storeSettings).values({
-    storeId: newStore.id,
-    codEnabled: true,
-    taxInclusive: true,
-  });
+    // 4. Set active store cookie
+    const cookieStore = await cookies();
+    cookieStore.set("storefy_active_store_id", newStore.id, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
+    });
 
-  // Switch to new store
-  const cookieStore = await cookies();
-  cookieStore.set("storefy_active_store_id", newStore.id, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-
-  revalidatePath("/dashboard");
-  return { success: true, storeId: newStore.id };
+    revalidatePath("/dashboard");
+    return { success: true, storeId: newStore.id, subdomain: newStore.subdomain };
+  } catch (error) {
+    console.error("[STOREFY CREATE STORE ERROR]", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create store. Please try again.",
+    };
+  }
 }

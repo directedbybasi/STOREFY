@@ -3,10 +3,12 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "../../lib/supabase/server";
+import { createAdminClient } from "../../lib/supabase/admin";
 import { db } from "../../database/client";
 import { users, organizations, stores, storeSettings, staff, roles } from "../../database/schema";
 import { eq } from "drizzle-orm";
 import {
+  AccountSignUpSchema,
   SignUpSchema,
   SignInSchema,
   ForgotPasswordSchema,
@@ -20,36 +22,58 @@ export interface AuthActionResult<T = unknown> {
 }
 
 /**
- * Signs up a new merchant, creating their user, organization, initial store,
- * default store settings, and OWNER staff membership.
+ * Signs up a new merchant, creating their user, organization, and OWNER staff membership.
+ * In the multi-store model, stores are provisioned during subsequent onboarding or in the dashboard.
  */
 export async function signUpAction(rawInput: unknown): Promise<AuthActionResult> {
-  const parseResult = SignUpSchema.safeParse(rawInput);
-  if (!parseResult.success) {
-    return {
-      success: false,
-      error: parseResult.error.errors[0]?.message || "Invalid registration data",
-    };
+  // Support both AccountSignUpSchema (new account-first flow) and legacy SignUpSchema
+  const accountParse = AccountSignUpSchema.safeParse(rawInput);
+  let fullName: string;
+  let email: string;
+  let password: string;
+  let legacyStoreName: string | undefined;
+  let legacySubdomain: string | undefined;
+
+  if (accountParse.success) {
+    fullName = accountParse.data.fullName;
+    email = accountParse.data.email;
+    password = accountParse.data.password;
+  } else {
+    const legacyParse = SignUpSchema.safeParse(rawInput);
+    if (!legacyParse.success) {
+      return {
+        success: false,
+        error:
+          accountParse.error.errors[0]?.message ||
+          legacyParse.error.errors[0]?.message ||
+          "Invalid registration data",
+      };
+    }
+    fullName = legacyParse.data.fullName;
+    email = legacyParse.data.email;
+    password = legacyParse.data.password;
+    legacyStoreName = legacyParse.data.storeName;
+    legacySubdomain = legacyParse.data.subdomain;
   }
 
-  const { fullName, email, password, storeName, subdomain } = parseResult.data;
-  const normalizedSubdomain = subdomain.toLowerCase().trim();
+  // If legacy signup specified a subdomain, check if it's already taken
+  if (legacySubdomain) {
+    const normalizedSub = legacySubdomain.toLowerCase().trim();
+    const [existingStore] = await db
+      .select({ id: stores.id })
+      .from(stores)
+      .where(eq(stores.subdomain, normalizedSub))
+      .limit(1);
 
-  // 1. Check if subdomain is already taken
-  const [existingStore] = await db
-    .select({ id: stores.id })
-    .from(stores)
-    .where(eq(stores.subdomain, normalizedSubdomain))
-    .limit(1);
-
-  if (existingStore) {
-    return {
-      success: false,
-      error: `Subdomain '${normalizedSubdomain}' is already taken. Please choose another.`,
-    };
+    if (existingStore) {
+      return {
+        success: false,
+        error: `Subdomain '${normalizedSub}' is already taken. Please choose another.`,
+      };
+    }
   }
 
-  // 2. Register user with Supabase Auth
+  // 1. Register user with Supabase Auth
   const supabase = await createServerSupabaseClient();
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
@@ -70,8 +94,28 @@ export async function signUpAction(rawInput: unknown): Promise<AuthActionResult>
 
   const userId = authData.user.id;
 
+  // 2. Auto-confirm user via privileged admin client so they can access immediately
   try {
-    // 3. Ensure user record exists in public.users
+    const adminClient = createAdminClient();
+    await adminClient.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    });
+  } catch (adminErr) {
+    console.warn("[STOREFY ADMIN AUTO-CONFIRM WARNING]", adminErr);
+  }
+
+  // 3. Establish active session cookies immediately
+  try {
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+  } catch (signInErr) {
+    console.warn("[STOREFY AUTO SIGN-IN WARNING]", signInErr);
+  }
+
+  try {
+    // 4. Ensure user record exists in public.users
     await db
       .insert(users)
       .values({
@@ -84,73 +128,88 @@ export async function signUpAction(rawInput: unknown): Promise<AuthActionResult>
         set: { email, fullName, updatedAt: new Date() },
       });
 
-    // 4. Create Organization
-    const orgSlug = `${normalizedSubdomain}-${Date.now().toString(36)}`;
+    // 5. Create Organization
+    const userSlug =
+      fullName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 30) || "merchant";
+    const orgSlug = `${userSlug}-${Date.now().toString(36)}`;
     const [organization] = await db
       .insert(organizations)
       .values({
-        name: `${storeName} Org`,
+        name: `${fullName}'s Organization`,
         slug: orgSlug,
         billingEmail: email,
       })
       .returning();
 
-    // 5. Create Initial Store
-    const [store] = await db
-      .insert(stores)
-      .values({
-        organizationId: organization.id,
-        name: storeName,
-        slug: normalizedSubdomain,
-        subdomain: normalizedSubdomain,
-        currency: "INR",
-        timezone: "Asia/Kolkata",
-        isActive: true,
-      })
-      .returning();
-
-    // 6. Create Default Store Settings
-    await db.insert(storeSettings).values({
-      storeId: store.id,
-      codEnabled: true,
-      taxInclusive: true,
-    });
-
-    // 7. Resolve OWNER Role and create Staff record
+    // 6. Resolve OWNER Role and create Staff record (storeId: null for org-wide owner)
     const [ownerRole] = await db.select().from(roles).where(eq(roles.name, "OWNER")).limit(1);
 
     if (ownerRole) {
       await db.insert(staff).values({
         organizationId: organization.id,
-        storeId: store.id,
+        storeId: null, // Org-wide OWNER
         userId: userId,
         roleId: ownerRole.id,
         isActive: true,
       });
     }
 
-    // 8. Set active store cookie
-    const cookieStore = await cookies();
-    cookieStore.set("storefy_active_store_id", store.id, {
-      path: "/",
-      sameSite: "lax",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
+    // 7. If legacy signup included storeName & subdomain, provision initial store
+    let createdStoreId: string | undefined;
+    let createdSubdomain: string | undefined;
+    if (legacyStoreName && legacySubdomain) {
+      const normalizedSub = legacySubdomain.toLowerCase().trim();
+      const [store] = await db
+        .insert(stores)
+        .values({
+          organizationId: organization.id,
+          name: legacyStoreName,
+          slug: normalizedSub,
+          subdomain: normalizedSub,
+          currency: "INR",
+          timezone: "Asia/Kolkata",
+          isActive: true,
+        })
+        .returning();
+
+      await db.insert(storeSettings).values({
+        storeId: store.id,
+        codEnabled: true,
+        taxInclusive: true,
+      });
+
+      createdStoreId = store.id;
+      createdSubdomain = store.subdomain;
+
+      const cookieStore = await cookies();
+      cookieStore.set("storefy_active_store_id", store.id, {
+        path: "/",
+        sameSite: "lax",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+    }
 
     return {
       success: true,
       data: {
-        storeId: store.id,
-        subdomain: store.subdomain,
+        userId,
+        organizationId: organization.id,
+        storeId: createdStoreId,
+        subdomain: createdSubdomain,
+        redirectTo: createdStoreId ? "/dashboard" : "/onboarding",
       },
     };
   } catch (dbError) {
     console.error("[STOREFY SIGNUP DB ERROR]", dbError);
     return {
       success: false,
-      error: "Account created but failed to provision initial store. Please contact support.",
+      error: "Account created but failed to provision organization. Please contact support.",
     };
   }
 }

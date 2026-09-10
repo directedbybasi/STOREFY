@@ -1,4 +1,16 @@
-export interface TenantContext {
+export interface TenantContextStore {
+  id: string;
+  organizationId: string;
+  name: string;
+  slug: string;
+  subdomain: string;
+  customDomain: string | null;
+  currency: string;
+  timezone: string;
+  isActive: boolean;
+}
+
+export interface AccountContext {
   user: {
     id: string;
     email: string;
@@ -12,17 +24,6 @@ export interface TenantContext {
     slug: string;
     billingEmail: string;
   };
-  store: {
-    id: string;
-    organizationId: string;
-    name: string;
-    slug: string;
-    subdomain: string;
-    customDomain: string | null;
-    currency: string;
-    timezone: string;
-    isActive: boolean;
-  };
   staff: {
     id: string;
     roleId: string;
@@ -34,4 +35,8 @@ export interface TenantContext {
   };
   permissions: Set<string>;
   isOwner: boolean;
+}
+
+export interface TenantContext extends AccountContext {
+  store: TenantContextStore;
 }

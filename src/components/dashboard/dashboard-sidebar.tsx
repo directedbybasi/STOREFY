@@ -253,7 +253,7 @@ export function DashboardSidebar({
       </div>
 
       {/* Footer / Storefront link */}
-      {!collapsed && (
+      {!collapsed && tenant.store && (
         <div className="border-t border-slate-800/80 p-3">
           <a
             href={`https://${tenant.store.subdomain}.storefy.shop`}
