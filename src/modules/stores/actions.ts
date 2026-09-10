@@ -8,7 +8,7 @@ import { stores, storeSettings, staff, storeThemes } from "../../database/schema
 import { eq, and, or, isNull } from "drizzle-orm";
 import { UnauthorizedError, ForbiddenError } from "../../core/errors";
 import { requirePermission } from "../../core/tenant/rbac";
-import { getTenantContext } from "../../core/tenant/context";
+import { getTenantContext, getAccountContext } from "../../core/tenant/context";
 import { CreateStoreSchema } from "../auth/validation";
 import { StoreSettingsSchema } from "./validation";
 
@@ -169,7 +169,7 @@ export async function createStoreAction(input: { name: string; subdomain: string
     };
   }
 
-  const ctx = await getTenantContext();
+  const ctx = await getAccountContext();
   if (!ctx.isOwner && !ctx.permissions.has("settings:manage")) {
     throw new ForbiddenError("Only organization owners or administrators can provision new stores");
   }
