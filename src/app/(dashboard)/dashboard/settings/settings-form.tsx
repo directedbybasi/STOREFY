@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { updateStoreSettingsAction, type StoreSettingsInput } from "@/modules/stores/actions";
+import { updateStoreSettingsAction } from "@/modules/stores/actions";
+import type { StoreSettingsInput } from "@/modules/stores/validation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

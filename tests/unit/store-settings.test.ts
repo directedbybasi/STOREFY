@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { StoreSettingsSchema } from "@/modules/stores/actions";
+import { StoreSettingsSchema } from "@/modules/stores/validation";
 import { hasPermission } from "@/core/tenant/rbac";
 import { ROLE_PERMISSION_MATRIX } from "@/database/seeds/rbac-seed";
 

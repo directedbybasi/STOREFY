@@ -4,7 +4,7 @@ import { db } from "@/database/client";
 import { stores, storeSettings } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { SettingsForm } from "./settings-form";
-import type { StoreSettingsInput } from "@/modules/stores/actions";
+import type { StoreSettingsInput } from "@/modules/stores/validation";
 
 export const metadata = {
   title: "Store Settings — STOREFY",
