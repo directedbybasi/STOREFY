@@ -1,0 +1,240 @@
+"use server";
+
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { createServerSupabaseClient } from "../../lib/supabase/server";
+import { db } from "../../database/client";
+import { stores, storeSettings, staff } from "../../database/schema";
+import { eq, and, or, isNull } from "drizzle-orm";
+import { UnauthorizedError, ForbiddenError } from "../../core/errors";
+import { requirePermission } from "../../core/tenant/rbac";
+import { getTenantContext } from "../../core/tenant/context";
+import { z } from "zod";
+
+export const StoreSettingsSchema = z.object({
+  name: z.string().min(2, "Store name must be at least 2 characters").max(255),
+  slug: z
+    .string()
+    .min(3, "Slug must be at least 3 characters")
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase alphanumeric characters and hyphens"),
+  currency: z.string().length(3, "Currency code must be 3 characters").default("INR"),
+  timezone: z.string().min(2).default("Asia/Kolkata"),
+  isActive: z.boolean().default(true),
+  logoUrl: z.string().nullable().optional(),
+  whatsappOrderPhone: z.string().max(32).nullable().optional(),
+  whatsappOrderEnabled: z.boolean().default(false),
+  whatsappSupportPhone: z.string().max(32).nullable().optional(),
+  whatsappSupportEnabled: z.boolean().default(false),
+  codEnabled: z.boolean().default(true),
+  codMinAmountRupees: z.number().min(0).default(0),
+  codMaxAmountRupees: z.number().min(0).max(500000).default(50000), // Max ₹5,00,000
+  taxInclusive: z.boolean().default(true),
+  orderIdPrefix: z.string().min(1).max(10).default("ORD-"),
+  invoicePrefix: z.string().min(1).max(10).default("INV-"),
+});
+
+export type StoreSettingsInput = z.infer<typeof StoreSettingsSchema>;
+
+/**
+ * Safely switches the active store for the authenticated merchant.
+ *
+ * CRITICAL ZERO-TRUST INVARIANT:
+ * Independently verifies in the database that the authenticated user possesses an
+ * active staff membership for targetStoreId before updating the session cookie.
+ */
+export async function switchStoreAction(targetStoreId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new UnauthorizedError("Authentication required to switch store");
+  }
+
+  // 1. Fetch target store to resolve its organization
+  const [targetStore] = await db
+    .select({
+      id: stores.id,
+      organizationId: stores.organizationId,
+      name: stores.name,
+      isActive: stores.isActive,
+    })
+    .from(stores)
+    .where(eq(stores.id, targetStoreId))
+    .limit(1);
+
+  if (!targetStore) {
+    throw new ForbiddenError("Target store does not exist");
+  }
+
+  // 2. Query staff table to verify user belongs to this store or organization
+  const [authorizedMembership] = await db
+    .select({ id: staff.id })
+    .from(staff)
+    .where(
+      and(
+        eq(staff.userId, user.id),
+        eq(staff.organizationId, targetStore.organizationId),
+        eq(staff.isActive, true),
+        or(isNull(staff.storeId), eq(staff.storeId, targetStoreId))
+      )
+    )
+    .limit(1);
+
+  if (!authorizedMembership) {
+    throw new ForbiddenError(
+      `Cross-tenant violation: User '${user.id}' is not authorized to access Store '${targetStoreId}'`
+    );
+  }
+
+  // 3. Persist active store cookie
+  const cookieStore = await cookies();
+  cookieStore.set("storefy_active_store_id", targetStore.id, {
+    path: "/",
+    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+
+  revalidatePath("/dashboard");
+  return { success: true, storeId: targetStore.id, name: targetStore.name };
+}
+
+/**
+ * Updates store operational settings and parameters.
+ * Requires `settings:manage` permission.
+ */
+export async function updateStoreSettingsAction(rawInput: unknown) {
+  const parseResult = StoreSettingsSchema.safeParse(rawInput);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: parseResult.error.errors[0]?.message || "Invalid settings input",
+    };
+  }
+
+  const data = parseResult.data;
+  const ctx = await requirePermission("settings:manage");
+
+  try {
+    // 1. Update stores record
+    await db
+      .update(stores)
+      .set({
+        name: data.name,
+        slug: data.slug,
+        currency: data.currency,
+        timezone: data.timezone,
+        isActive: data.isActive,
+        logoUrl: data.logoUrl || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(stores.id, ctx.store.id));
+
+    // 2. Upsert store_settings record
+    await db
+      .insert(storeSettings)
+      .values({
+        storeId: ctx.store.id,
+        whatsappOrderPhone: data.whatsappOrderPhone || null,
+        whatsappOrderEnabled: data.whatsappOrderEnabled,
+        whatsappSupportPhone: data.whatsappSupportPhone || null,
+        whatsappSupportEnabled: data.whatsappSupportEnabled,
+        codEnabled: data.codEnabled,
+        codMinAmount: Math.round(data.codMinAmountRupees * 100), // stored in paise
+        codMaxAmount: Math.round(data.codMaxAmountRupees * 100),
+        taxInclusive: data.taxInclusive,
+        orderIdPrefix: data.orderIdPrefix,
+        invoicePrefix: data.invoicePrefix,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: storeSettings.storeId,
+        set: {
+          whatsappOrderPhone: data.whatsappOrderPhone || null,
+          whatsappOrderEnabled: data.whatsappOrderEnabled,
+          whatsappSupportPhone: data.whatsappSupportPhone || null,
+          whatsappSupportEnabled: data.whatsappSupportEnabled,
+          codEnabled: data.codEnabled,
+          codMinAmount: Math.round(data.codMinAmountRupees * 100),
+          codMaxAmount: Math.round(data.codMaxAmountRupees * 100),
+          taxInclusive: data.taxInclusive,
+          orderIdPrefix: data.orderIdPrefix,
+          invoicePrefix: data.invoicePrefix,
+          updatedAt: new Date(),
+        },
+      });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/settings");
+
+    return { success: true };
+  } catch (error) {
+    console.error("[STOREFY UPDATE SETTINGS ERROR]", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update store settings",
+    };
+  }
+}
+
+/**
+ * Creates an additional store within the merchant's active organization.
+ */
+export async function createStoreAction(input: { name: string; subdomain: string }) {
+  const ctx = await getTenantContext();
+  if (!ctx.isOwner && !ctx.permissions.has("settings:manage")) {
+    throw new ForbiddenError("Only organization owners or administrators can provision new stores");
+  }
+
+  const normalizedSubdomain = input.subdomain.toLowerCase().trim();
+
+  // Check unique subdomain
+  const [existing] = await db
+    .select({ id: stores.id })
+    .from(stores)
+    .where(eq(stores.subdomain, normalizedSubdomain))
+    .limit(1);
+
+  if (existing) {
+    return {
+      success: false,
+      error: `Subdomain '${normalizedSubdomain}' is already taken.`,
+    };
+  }
+
+  // Insert store
+  const [newStore] = await db
+    .insert(stores)
+    .values({
+      organizationId: ctx.organization.id,
+      name: input.name,
+      slug: normalizedSubdomain,
+      subdomain: normalizedSubdomain,
+      currency: "INR",
+      timezone: "Asia/Kolkata",
+      isActive: true,
+    })
+    .returning();
+
+  // Create default store settings
+  await db.insert(storeSettings).values({
+    storeId: newStore.id,
+    codEnabled: true,
+    taxInclusive: true,
+  });
+
+  // Switch to new store
+  const cookieStore = await cookies();
+  cookieStore.set("storefy_active_store_id", newStore.id, {
+    path: "/",
+    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  revalidatePath("/dashboard");
+  return { success: true, storeId: newStore.id };
+}
