@@ -5,7 +5,7 @@ import {
   checkoutSessions,
   checkoutSessionItems,
 } from "@/database/schema";
-import { eq, and, sql, lt, inArray } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 import { ConflictError, NotFoundError } from "@/core/errors";
 
 export interface ItemToReserve {

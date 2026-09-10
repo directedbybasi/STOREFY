@@ -3,14 +3,13 @@ import {
   checkoutSessions,
   checkoutSessionItems,
   storeSettings,
-  carts,
   cartItems,
   productVariants,
   products,
   type CheckoutSession,
   type CheckoutAddressData,
 } from "@/database/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import {
   reserveCheckoutItems,
   releaseCheckoutReservation,
@@ -18,7 +17,7 @@ import {
   RESERVATION_HOLD_MINUTES,
   type ItemToReserve,
 } from "./reservation";
-import { resolveAuthoritativeCart, clearCart, formatPaiseToRupees } from "@/modules/cart";
+import { resolveAuthoritativeCart, formatPaiseToRupees } from "@/modules/cart";
 import { NotFoundError, ValidationError, ConflictError } from "@/core/errors";
 import {
   type CheckoutContactInput,
@@ -221,8 +220,11 @@ async function buildCheckoutSessionDTO(
     storeId: session.storeId,
     cartId: session.cartId,
     sessionToken: session.sessionToken,
-    status: isExpired && session.status === "RESERVED" ? "EXPIRED" : (session.status as any),
-    step: session.step as any,
+    status:
+      isExpired && session.status === "RESERVED"
+        ? "EXPIRED"
+        : (session.status as CheckoutSessionDTO["status"]),
+    step: session.step as CheckoutSessionDTO["step"],
     email: session.email,
     phone: session.phone,
     fullName: session.fullName,
@@ -232,8 +234,8 @@ async function buildCheckoutSessionDTO(
     shippingMethodName: session.shippingMethodName,
     shippingCostPaise: session.shippingCost,
     shippingCostFormatted: formatPaiseToRupees(session.shippingCost),
-    paymentMethod: session.paymentMethod as any,
-    paymentStatus: session.paymentStatus as any,
+    paymentMethod: session.paymentMethod as CheckoutSessionDTO["paymentMethod"],
+    paymentStatus: session.paymentStatus as CheckoutSessionDTO["paymentStatus"],
     subtotalPaise: session.subtotalAmount,
     subtotalFormatted: formatPaiseToRupees(session.subtotalAmount),
     discountPaise: session.discountAmount,
@@ -665,3 +667,21 @@ export async function confirmCheckout(
     orderStatus: "AWAITING_ORDER_CREATION",
   };
 }
+
+/**
+ * Cancels a checkout session and releases its active reservations.
+ */
+export async function cancelCheckout(
+  storeId: string,
+  checkoutSessionId: string,
+  sessionToken: string
+): Promise<{ success: true; message: string }> {
+  await getCheckoutSession(storeId, checkoutSessionId, sessionToken);
+  await releaseCheckoutReservation(checkoutSessionId, storeId, "CANCELLED");
+
+  return {
+    success: true,
+    message: "Checkout session cancelled and reserved inventory released.",
+  };
+}
+

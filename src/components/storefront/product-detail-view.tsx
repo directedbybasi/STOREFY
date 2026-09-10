@@ -354,10 +354,11 @@ export function ProductDetailView({
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-6 rounded-lg bg-[var(--store-primary,#0f172a)] text-white text-sm font-semibold hover:opacity-90 transition shadow-sm"
+                disabled={cartLoading}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-6 rounded-lg bg-[var(--store-primary,#0f172a)] text-white text-sm font-semibold hover:opacity-90 transition shadow-sm disabled:opacity-50"
               >
                 <ShoppingBag className="h-4 w-4" />
-                Add to Cart
+                {cartLoading ? "Adding..." : "Add to Cart"}
               </button>
             </div>
 

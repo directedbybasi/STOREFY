@@ -6,9 +6,8 @@ import {
   productVariants,
   inventory,
   type Cart,
-  type CartItem,
 } from "@/database/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { NotFoundError, ValidationError, ConflictError } from "@/core/errors";
 
 export interface CartItemDTO {

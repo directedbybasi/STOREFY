@@ -46,8 +46,8 @@ export function CartProvider({ children, domain, initialCart = null }: CartProvi
       if (res.success) {
         setCart(res.cart);
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to load cart.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -73,8 +73,8 @@ export function CartProvider({ children, domain, initialCart = null }: CartProvi
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to add item to cart.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to add item to cart.");
       return false;
     } finally {
       setIsLoading(false);
@@ -91,8 +91,8 @@ export function CartProvider({ children, domain, initialCart = null }: CartProvi
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to update item quantity.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update item quantity.");
       return false;
     } finally {
       setIsLoading(false);
@@ -109,8 +109,8 @@ export function CartProvider({ children, domain, initialCart = null }: CartProvi
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to remove item.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to remove item.");
       return false;
     } finally {
       setIsLoading(false);
@@ -127,8 +127,8 @@ export function CartProvider({ children, domain, initialCart = null }: CartProvi
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to clear cart.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to clear cart.");
       return false;
     } finally {
       setIsLoading(false);

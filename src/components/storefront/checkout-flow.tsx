@@ -2,16 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
-  Truck,
   Clock,
   CheckCircle2,
   AlertCircle,
   CreditCard,
   Banknote,
-  ChevronRight,
   ArrowRight,
   ShoppingBag,
   RefreshCw,
@@ -32,7 +29,6 @@ interface CheckoutFlowProps {
 }
 
 export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
-  const router = useRouter();
   const [session, setSession] = useState<CheckoutSessionDTO>(initialSession);
   const [step, setStep] = useState<
     "CONTACT" | "ADDRESS" | "SHIPPING" | "PAYMENT" | "REVIEW" | "CONFIRMATION"
@@ -107,8 +103,8 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
         setSession(res.session);
         setStep("ADDRESS");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to update contact details.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update contact details.");
     } finally {
       setIsLoading(false);
     }
@@ -128,8 +124,8 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
         setSession(res.session);
         setStep("SHIPPING");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to update address.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update address.");
     } finally {
       setIsLoading(false);
     }
@@ -142,15 +138,15 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
       setError(null);
       const res = await selectStorefrontCheckoutShippingAction(
         session.id,
-        { shippingMethodId: selectedShipping as any },
+        { shippingMethodId: selectedShipping as "standard" | "express" | "free" },
         domain
       );
       if (res.success) {
         setSession(res.session);
         setStep("PAYMENT");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to select shipping method.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to select shipping method.");
     } finally {
       setIsLoading(false);
     }
@@ -170,8 +166,8 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
         setSession(res.session);
         setStep("REVIEW");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to select payment method.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to select payment method.");
     } finally {
       setIsLoading(false);
     }
@@ -186,8 +182,8 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
         setSession(res.session);
         setStep("CONFIRMATION");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to confirm checkout.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to confirm checkout.");
     } finally {
       setIsLoading(false);
     }
@@ -203,8 +199,8 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
         setRemainingSeconds(res.session.remainingSeconds);
         setStep("CONTACT");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to re-initialize reservation.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to re-initialize reservation.");
     } finally {
       setIsLoading(false);
     }

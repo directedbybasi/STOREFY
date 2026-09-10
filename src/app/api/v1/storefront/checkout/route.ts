@@ -4,7 +4,19 @@ import { resolveStorefrontTenant } from "@/modules/storefront/store-resolver";
 import {
   initializeCheckoutSession,
   getCheckoutSession,
-} from "@/modules/checkout";
+  updateCheckoutContact,
+  updateCheckoutAddress,
+  selectCheckoutShipping,
+  selectCheckoutPayment,
+  confirmCheckout,
+  cancelCheckout,
+} from "@/modules/checkout/service";
+import {
+  CheckoutContactSchema,
+  CheckoutAddressSchema,
+  CheckoutShippingSchema,
+  CheckoutPaymentSchema,
+} from "@/modules/checkout/validation";
 import { ValidationError, NotFoundError } from "@/core/errors";
 
 export const dynamic = "force-dynamic";
@@ -62,3 +74,73 @@ export async function POST(req: NextRequest) {
     return apiError(err);
   }
 }
+
+/**
+ * PATCH /api/v1/storefront/checkout
+ * Updates contact, address, shipping, or payment step.
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const { storeId, sessionToken } = await resolveRequestContext(req);
+    const body = await req.json();
+    const { checkoutId, action, ...data } = body;
+
+    if (!checkoutId) {
+      throw new ValidationError("checkoutId parameter is required.");
+    }
+
+    let updatedSession;
+    switch (action) {
+      case "contact": {
+        const parsed = CheckoutContactSchema.parse(data);
+        updatedSession = await updateCheckoutContact(storeId, checkoutId, sessionToken, parsed);
+        break;
+      }
+      case "address": {
+        const parsed = CheckoutAddressSchema.parse(data);
+        updatedSession = await updateCheckoutAddress(storeId, checkoutId, sessionToken, parsed);
+        break;
+      }
+      case "shipping": {
+        const parsed = CheckoutShippingSchema.parse(data);
+        updatedSession = await selectCheckoutShipping(storeId, checkoutId, sessionToken, parsed);
+        break;
+      }
+      case "payment": {
+        const parsed = CheckoutPaymentSchema.parse(data);
+        updatedSession = await selectCheckoutPayment(storeId, checkoutId, sessionToken, parsed);
+        break;
+      }
+      case "confirm": {
+        const res = await confirmCheckout(storeId, checkoutId, sessionToken);
+        return apiSuccess(res);
+      }
+      default:
+        throw new ValidationError(`Unknown checkout action: ${action}. Expected: contact, address, shipping, payment, confirm.`);
+    }
+
+    return apiSuccess(updatedSession);
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
+/**
+ * DELETE /api/v1/storefront/checkout?checkoutId=...
+ * Cancels active checkout and releases reserved inventory.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { storeId, sessionToken } = await resolveRequestContext(req);
+    const checkoutId = req.nextUrl.searchParams.get("checkoutId");
+    if (!checkoutId) {
+      throw new ValidationError("checkoutId parameter is required.");
+    }
+
+    const res = await cancelCheckout(storeId, checkoutId, sessionToken);
+    return apiSuccess(res);
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
