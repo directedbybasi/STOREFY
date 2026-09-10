@@ -1,2 +1,3 @@
-﻿// STOREFY — auth domain module boundary
-export const DOMAIN_NAME = "auth";
+// STOREFY — Auth domain module exports
+export * from "./actions";
+export * from "./validation";
