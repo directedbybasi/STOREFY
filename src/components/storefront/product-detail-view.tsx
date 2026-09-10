@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import { useCart } from "./cart-context";
 import {
   ShieldCheck,
   Truck,
@@ -106,23 +108,35 @@ export function ProductDetailView({
     ? currentVariant.compareAtPrice
     : product.compareAtPrice;
 
-  // Discount percentage
   const discountPercent =
     activeComparePricePaise && activeComparePricePaise > activePricePaise
       ? Math.round(
           ((activeComparePricePaise - activePricePaise) / activeComparePricePaise) * 100
         )
       : null;
+  const { addToCart, isLoading: cartLoading } = useCart();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Handle Cart & Buy Now hooks (truthful feedback without fake checkout)
-  const handleAddToCart = () => {
-    setActionFeedback("Product added to cart! (Cart & Checkout will activate in Phase 7)");
-    setTimeout(() => setActionFeedback(null), 4000);
+  // Handle Cart & Buy Now hooks (Server-authoritative cart integration)
+  const handleAddToCart = async () => {
+    if (!currentVariant) return;
+    const ok = await addToCart(currentVariant.id, quantity);
+    if (ok) {
+      setActionFeedback("Product added to cart!");
+      setTimeout(() => setActionFeedback(null), 3000);
+    }
   };
 
-  const handleBuyNow = () => {
-    setActionFeedback("Direct checkout flow will be enabled in Phase 7.");
-    setTimeout(() => setActionFeedback(null), 4000);
+  const handleBuyNow = async () => {
+    if (!currentVariant) return;
+    const ok = await addToCart(currentVariant.id, quantity);
+    if (ok) {
+      const pathParts = pathname.split("/").filter(Boolean);
+      const isSubPathDomain = pathParts.length > 0 && pathParts[0] !== "products" && pathParts[0] !== "collections";
+      const checkoutUrl = isSubPathDomain ? `/${pathParts[0]}/checkout` : "/checkout";
+      router.push(checkoutUrl);
+    }
   };
 
   const currentImageUrl =

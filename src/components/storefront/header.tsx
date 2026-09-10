@@ -7,6 +7,8 @@ import { ShoppingBag, Search, Menu, Store as StoreIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { NavigationItem } from "@/database/schema";
 
+import { useCart } from "./cart-context";
+
 interface StorefrontHeaderProps {
   storeName: string;
   logoUrl?: string | null;
@@ -22,10 +24,11 @@ export function StorefrontHeader({
 }: StorefrontHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { cart, openCart } = useCart();
+  const totalQuantity = cart?.totalQuantity || 0;
 
   // Helper to format links appropriately whether accessed via direct domain rewrite or path-based preview
   const formatLink = (url: string) => {
-    // If the browser pathname begins with `/${domain}`, retain prefix for preview/test routing
     if (pathname.startsWith(`/${domain}`)) {
       if (url === "/") return `/${domain}`;
       return `/${domain}${url.startsWith("/") ? url : `/${url}`}`;
@@ -137,26 +140,30 @@ export function StorefrontHeader({
           <button
             type="button"
             className="p-2 rounded-full text-slate-600 hover:text-[var(--store-text,#0f172a)] hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-[var(--store-primary,#0f172a)]"
-            title="Product Search (Available in Phase 6 Catalog)"
+            title="Product Search"
             aria-label="Search products"
           >
             <Search className="h-5 w-5" />
           </button>
 
-          {/* Cart Button (Accessible placeholder with 0-item badge) */}
+          {/* Cart Button (Live interactive badge) */}
           <button
             type="button"
+            onClick={openCart}
             className="p-2 rounded-full text-slate-600 hover:text-[var(--store-text,#0f172a)] hover:bg-slate-100 transition relative focus:outline-none focus:ring-2 focus:ring-[var(--store-primary,#0f172a)]"
-            title="Cart (Available in Phase 8 Checkout)"
-            aria-label="Shopping Cart (0 items)"
+            title="Shopping Cart"
+            aria-label={`Shopping Cart (${totalQuantity} items)`}
           >
             <ShoppingBag className="h-5 w-5" />
-            <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--store-primary,#0f172a)] text-[10px] font-bold text-white">
-              0
-            </span>
+            {totalQuantity > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--store-primary,#0f172a)] text-[10px] font-bold text-white shadow-xs">
+                {totalQuantity > 99 ? "99+" : totalQuantity}
+              </span>
+            )}
           </button>
         </div>
       </div>
     </header>
   );
 }
+

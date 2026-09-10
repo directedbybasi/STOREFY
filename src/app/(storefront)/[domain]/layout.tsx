@@ -4,6 +4,8 @@ import { compileThemeCssVariables } from "@/modules/storefront/theme-engine";
 import { StorefrontAnnouncementBar } from "@/components/storefront/announcement-bar";
 import { StorefrontHeader } from "@/components/storefront/header";
 import { StorefrontFooter } from "@/components/storefront/footer";
+import { CartProvider } from "@/components/storefront/cart-context";
+import { CartDrawer } from "@/components/storefront/cart-drawer";
 import { AlertCircle, Wrench, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
@@ -96,46 +98,51 @@ export default async function StorefrontLayout({
       </div>
     );
   }
-
   // 4. ACTIVE Storefront Engine Render
   const { store, settings, themeSettings, navigation: navMenus } = resolution;
   const cssVariables = compileThemeCssVariables(themeSettings);
 
   return (
-    <div
-      style={cssVariables}
-      className="min-h-screen flex flex-col bg-[var(--store-bg,#ffffff)] text-[var(--store-text,#0f172a)] font-sans antialiased selection:bg-[var(--store-primary,#0f172a)] selection:text-white"
-    >
-      {/* Announcement Bar */}
-      {themeSettings.announcement?.enabled && (
-        <StorefrontAnnouncementBar
-          text={themeSettings.announcement.text}
-          link={themeSettings.announcement.link}
+    <CartProvider domain={domain}>
+      <div
+        style={cssVariables}
+        className="min-h-screen flex flex-col bg-[var(--store-bg,#ffffff)] text-[var(--store-text,#0f172a)] font-sans antialiased selection:bg-[var(--store-primary,#0f172a)] selection:text-white"
+      >
+        {/* Announcement Bar */}
+        {themeSettings.announcement?.enabled && (
+          <StorefrontAnnouncementBar
+            text={themeSettings.announcement.text}
+            link={themeSettings.announcement.link}
+          />
+        )}
+
+        {/* Dynamic Header */}
+        <StorefrontHeader
+          storeName={store.name}
+          logoUrl={store.logoUrl}
+          navigationItems={navMenus.main}
+          domain={domain}
         />
-      )}
 
-      {/* Dynamic Header */}
-      <StorefrontHeader
-        storeName={store.name}
-        logoUrl={store.logoUrl}
-        navigationItems={navMenus.main}
-        domain={domain}
-      />
+        {/* Main Content Area */}
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          {children}
+        </main>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        {children}
-      </main>
+        {/* Dynamic Multi-Column Footer */}
+        <StorefrontFooter
+          storeName={store.name}
+          aboutText={themeSettings.footer?.aboutText}
+          copyrightText={themeSettings.footer?.copyrightText}
+          navigationItems={navMenus.footer}
+          settings={settings}
+          domain={domain}
+        />
 
-      {/* Dynamic Multi-Column Footer */}
-      <StorefrontFooter
-        storeName={store.name}
-        aboutText={themeSettings.footer?.aboutText}
-        copyrightText={themeSettings.footer?.copyrightText}
-        navigationItems={navMenus.footer}
-        settings={settings}
-        domain={domain}
-      />
-    </div>
+        {/* Slide-over Cart Drawer */}
+        <CartDrawer domain={domain} />
+      </div>
+    </CartProvider>
   );
 }
+
