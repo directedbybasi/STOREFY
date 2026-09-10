@@ -142,7 +142,7 @@ All required verification suites were executed against the codebase:
 - **Active Development Branch:** `develop` (tracks `origin/develop`)
 - **Production Branch:** `main` (tracks `origin/main`)
 - **Vercel Preview URL:** `https://storefy-git-develop-storefy1.vercel.app`
-- **Deployment Status:** `Ready` (Verified on Node.js LTS `20.x`)
+- **Deployment Status:** `Ready` (Verified on Node.js `24.x`)
 - **Secret Hygiene:** All `.env.*` files (except `.env.example`) are strictly gitignored. Zero secrets are committed to version control.
 
 ---
