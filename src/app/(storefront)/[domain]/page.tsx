@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { db } from "@/database/client";
+import { pages, type PageAst, type SectionNode } from "@/database/schema";
+import { eq, and } from "drizzle-orm";
 import { resolveStorefrontTenant } from "@/modules/storefront/store-resolver";
 import { generateStorefrontMetadata } from "@/modules/storefront/seo";
+import { SectionRenderer } from "@/components/storefront/sections/section-renderer";
+import type { BindingContext } from "@/modules/builder/bindings";
 import { ArrowRight, ShoppingBag, Truck, ShieldCheck, Banknote, MessageCircle, Sparkles } from "lucide-react";
 
 interface StorefrontHomePageProps {
@@ -30,6 +35,49 @@ export default async function StorefrontHomePage({
   }
 
   const { store, settings } = resolution;
+
+  // Check if published customizer AST exists for "home"
+  let publishedAst: PageAst | null = null;
+  try {
+    const [pageRecord] = await db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.storeId, store.id), eq(pages.slug, "home")))
+      .limit(1);
+
+    if (pageRecord?.content && typeof pageRecord.content === "object") {
+      const candidate = pageRecord.content as PageAst;
+      if (Array.isArray(candidate.sections) && candidate.sections.length > 0) {
+        publishedAst = candidate;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to query published home page AST:", err);
+  }
+
+  // If customizer AST is published and has sections, render via unified SectionRenderer
+  if (publishedAst && publishedAst.sections.length > 0) {
+    const bindingContext: BindingContext = {
+      store: {
+        name: store.name,
+        currency: store.currency,
+        subdomain: store.subdomain,
+      },
+    };
+
+    return (
+      <div className="space-y-12 md:space-y-16">
+        {publishedAst.sections.map((section: SectionNode) => (
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            context={bindingContext}
+          />
+        ))}
+      </div>
+    );
+  }
+
   const codLimitRupees = settings?.codMaxAmount
     ? Math.floor(settings.codMaxAmount / 100)
     : 50000;

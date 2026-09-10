@@ -19,6 +19,8 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
+  Palette,
+  Brush,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -64,6 +66,23 @@ const NAV_GROUPS: NavGroup[] = [
         icon: Users,
         permission: "customers:read",
         badge: "Phase 7",
+      },
+    ],
+  },
+  {
+    groupName: "Sales Channels",
+    items: [
+      {
+        title: "Themes",
+        href: "/dashboard/online-store/themes",
+        icon: Palette,
+        permission: "builder:read",
+      },
+      {
+        title: "Theme Customizer",
+        href: "/dashboard/online-store/themes/customizer",
+        icon: Brush,
+        permission: "builder:write",
       },
     ],
   },

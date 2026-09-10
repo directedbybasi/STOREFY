@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { db } from "@/database/client";
+import { pages, type PageAst, type SectionNode } from "@/database/schema";
+import { eq, and } from "drizzle-orm";
 import { resolveStorefrontTenant } from "@/modules/storefront/store-resolver";
 import { generateStorefrontMetadata } from "@/modules/storefront/seo";
+import { SectionRenderer } from "@/components/storefront/sections/section-renderer";
+import type { BindingContext } from "@/modules/builder/bindings";
 import { Mail, MessageCircle, Clock, MapPin, Send, HelpCircle } from "lucide-react";
 
 interface ContactPageProps {
@@ -32,6 +37,48 @@ export default async function StorefrontContactPage({
   }
 
   const { store, settings } = resolution;
+
+  // Check if published customizer AST exists for "contact"
+  let publishedAst: PageAst | null = null;
+  try {
+    const [pageRecord] = await db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.storeId, store.id), eq(pages.slug, "contact")))
+      .limit(1);
+
+    if (pageRecord?.content && typeof pageRecord.content === "object") {
+      const candidate = pageRecord.content as PageAst;
+      if (Array.isArray(candidate.sections) && candidate.sections.length > 0) {
+        publishedAst = candidate;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to query published contact page AST:", err);
+  }
+
+  if (publishedAst && publishedAst.sections.length > 0) {
+    const bindingContext: BindingContext = {
+      store: {
+        name: store.name,
+        currency: store.currency,
+        subdomain: store.subdomain,
+      },
+    };
+
+    return (
+      <div className="space-y-12 md:space-y-16">
+        {publishedAst.sections.map((section: SectionNode) => (
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            context={bindingContext}
+          />
+        ))}
+      </div>
+    );
+  }
+
   const whatsappPhone = settings?.whatsappSupportPhone || settings?.whatsappOrderPhone;
   const whatsappEnabled =
     (settings?.whatsappSupportEnabled || settings?.whatsappOrderEnabled) && !!whatsappPhone;

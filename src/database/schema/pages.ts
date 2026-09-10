@@ -20,6 +20,7 @@ export const pages = pgTable(
     seoTitle: varchar("seo_title", { length: 255 }),
     seoDescription: text("seo_description"),
     content: jsonb("content").notNull().default({}),
+    draftContent: jsonb("draft_content").notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -31,3 +32,4 @@ export const pages = pgTable(
 
 export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
+export type { PageAst, SectionNode, BlockNode } from "@/modules/builder/schema";
