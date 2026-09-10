@@ -200,14 +200,23 @@ export function SectionRenderer({
       }
 
       case "product": {
+        const rawTitle = (block.settings.title as string) || "{{ product.title }}";
+        const rawPrice = (block.settings.price as string) || "{{ product.price }}";
+        const title = t(rawTitle) === rawTitle && rawTitle.includes("{{") ? "Featured Product" : t(rawTitle);
+        const price = t(rawPrice) === rawPrice && rawPrice.includes("{{") ? "₹999.00" : t(rawPrice);
+        const image = (block.settings.image as string) || null;
         content = (
           <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3">
-            <div className="w-full h-36 bg-slate-100 rounded-lg flex items-center justify-center">
-              <ShoppingBag className="h-8 w-8 text-slate-400" />
+            <div className="w-full h-36 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
+              {image ? (
+                <img src={image} alt={title} className="w-full h-full object-cover" />
+              ) : (
+                <ShoppingBag className="h-8 w-8 text-slate-400" />
+              )}
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-800">Featured Item</span>
-              <p className="text-xs text-slate-500">Catalog integration ready for Phase 6</p>
+              <span className="text-xs font-semibold text-slate-800 truncate block">{title}</span>
+              <p className="text-xs font-bold text-slate-900 font-mono">{price}</p>
             </div>
           </div>
         );
@@ -215,11 +224,14 @@ export function SectionRenderer({
       }
 
       case "collection": {
-        const title = (block.settings.title as string) || "Featured Category";
+        const rawTitle = (block.settings.title as string) || "{{ collection.title }}";
+        const rawDesc = (block.settings.description as string) || "{{ collection.description }}";
+        const title = t(rawTitle) === rawTitle && rawTitle.includes("{{") ? "Featured Collection" : t(rawTitle);
+        const desc = t(rawDesc) === rawDesc && rawDesc.includes("{{") ? "Curated Grouping" : t(rawDesc);
         content = (
           <div className="p-6 rounded-2xl bg-white border border-slate-200 text-center space-y-2">
             <h4 className="font-bold text-slate-900">{title}</h4>
-            <p className="text-xs text-slate-500">Curated Grouping</p>
+            <p className="text-xs text-slate-500">{desc}</p>
           </div>
         );
         break;

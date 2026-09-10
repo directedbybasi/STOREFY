@@ -40,6 +40,8 @@ export const CANONICAL_PERMISSIONS = [
   // Catalog
   { module: "catalog", action: "read", code: "catalog:read" },
   { module: "catalog", action: "write", code: "catalog:write" },
+  { module: "catalog", action: "publish", code: "catalog:publish" },
+  { module: "catalog", action: "delete", code: "catalog:delete" },
 
   // Inventory
   { module: "inventory", action: "read", code: "inventory:read" },
@@ -83,7 +85,7 @@ export const CANONICAL_PERMISSIONS = [
 export const ROLE_PERMISSION_MATRIX: Record<string, string[]> = {
   OWNER: CANONICAL_PERMISSIONS.map((p) => p.code),
   ADMIN: [
-    "catalog:read", "catalog:write",
+    "catalog:read", "catalog:write", "catalog:publish", "catalog:delete",
     "inventory:read", "inventory:adjust",
     "orders:read", "orders:fulfill", "orders:refund",
     "customers:read", "customers:manage",
@@ -95,7 +97,7 @@ export const ROLE_PERMISSION_MATRIX: Record<string, string[]> = {
     "analytics:view",
   ],
   MANAGER: [
-    "catalog:read", "catalog:write",
+    "catalog:read", "catalog:write", "catalog:publish",
     "inventory:read", "inventory:adjust",
     "orders:read", "orders:fulfill",
     "customers:read",
@@ -103,7 +105,7 @@ export const ROLE_PERMISSION_MATRIX: Record<string, string[]> = {
     "analytics:view",
   ],
   PRODUCT_MANAGER: [
-    "catalog:read", "catalog:write",
+    "catalog:read", "catalog:write", "catalog:publish", "catalog:delete",
     "inventory:read", "inventory:adjust",
     "builder:read",
   ],

@@ -11,16 +11,20 @@ export interface BindingContext {
     id?: string;
     title?: string;
     description?: string;
-    price?: number;
-    compareAtPrice?: number | null;
+    price?: number | string;
+    comparePrice?: number | string | null;
+    compareAtPrice?: number | string | null;
     sku?: string;
+    image?: string;
     primaryImageUrl?: string;
+    handle?: string;
   };
   collection?: {
     id?: string;
     title?: string;
     description?: string;
     productsCount?: number;
+    products?: string;
   };
 }
 
@@ -30,8 +34,18 @@ export interface BindingContext {
  */
 const APPROVED_BINDING_PATHS: Record<string, string[]> = {
   store: ["name", "subdomain", "customDomain", "currency", "logoUrl", "description"],
-  product: ["title", "description", "price", "compareAtPrice", "sku", "primaryImageUrl"],
-  collection: ["title", "description", "productsCount"],
+  product: [
+    "title",
+    "description",
+    "price",
+    "comparePrice",
+    "compareAtPrice",
+    "sku",
+    "image",
+    "primaryImageUrl",
+    "handle",
+  ],
+  collection: ["title", "description", "productsCount", "products"],
 };
 
 /**

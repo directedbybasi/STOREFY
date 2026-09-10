@@ -21,6 +21,8 @@ import {
   ChevronRight,
   Palette,
   Brush,
+  FolderTree,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -51,7 +53,18 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/dashboard/products",
         icon: Package,
         permission: "catalog:read",
-        badge: "Phase 4",
+      },
+      {
+        title: "Categories",
+        href: "/dashboard/products/categories",
+        icon: FolderTree,
+        permission: "catalog:read",
+      },
+      {
+        title: "Collections",
+        href: "/dashboard/products/collections",
+        icon: Layers,
+        permission: "catalog:read",
       },
       {
         title: "Orders",

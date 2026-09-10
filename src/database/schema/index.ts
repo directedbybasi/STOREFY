@@ -13,3 +13,6 @@ export * from "./staff";
 export * from "./themes";
 export * from "./pages";
 export * from "./navigation";
+export * from "./categories";
+export * from "./products";
+export * from "./collections";

@@ -118,3 +118,177 @@ export async function generateStorefrontMetadata({
     },
   };
 }
+
+/**
+ * Generates dynamic Next.js Metadata strictly scoped to the resolved tenant and product handle.
+ */
+export async function generateProductMetadata({
+  domain,
+  handle,
+}: {
+  domain: string;
+  handle: string;
+}): Promise<Metadata> {
+  const resolution = await resolveStorefrontTenant(domain);
+  if (resolution.status !== "ACTIVE") {
+    return {
+      title: "Store Unavailable | STOREFY",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const { store } = resolution;
+
+  try {
+    const { products, productImages } = await import("@/database/schema");
+    const [product] = await db
+      .select({
+        id: products.id,
+        title: products.title,
+        seoTitle: products.seoTitle,
+        seoDescription: products.seoDescription,
+        description: products.description,
+        shortDescription: products.shortDescription,
+      })
+      .from(products)
+      .where(
+        and(
+          eq(products.storeId, store.id),
+          eq(products.slug, handle),
+          eq(products.status, "ACTIVE")
+        )
+      )
+      .limit(1);
+
+    if (!product) {
+      return {
+        title: `Product Not Found | ${store.name}`,
+        robots: { index: false, follow: false },
+      };
+    }
+
+    const [primaryImage] = await db
+      .select({ imageUrl: productImages.imageUrl })
+      .from(productImages)
+      .where(and(eq(productImages.productId, product.id), eq(productImages.storeId, store.id)))
+      .orderBy(eq(productImages.sortOrder, 0))
+      .limit(1);
+
+    const title = product.seoTitle || product.title;
+    const fullTitle = `${title} | ${store.name}`;
+    const description =
+      product.seoDescription ||
+      product.shortDescription ||
+      product.description ||
+      `Buy ${product.title} online at ${store.name}. Authentic quality and fast delivery.`;
+
+    const canonicalUrl = `https://${domain}/products/${handle}`;
+    const ogImage = primaryImage?.imageUrl || store.logoUrl || "/placeholder-store.png";
+
+    return {
+      title: fullTitle,
+      description,
+      alternates: { canonical: canonicalUrl },
+      robots: { index: true, follow: true },
+      openGraph: {
+        type: "website",
+        title: fullTitle,
+        description,
+        siteName: store.name,
+        url: canonicalUrl,
+        images: ogImage ? [{ url: ogImage, alt: product.title }] : [],
+        locale: "en_IN",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fullTitle,
+        description,
+        images: ogImage ? [ogImage] : [],
+      },
+    };
+  } catch {
+    return {
+      title: `Product | ${store.name}`,
+    };
+  }
+}
+
+/**
+ * Generates dynamic Next.js Metadata strictly scoped to the resolved tenant and collection handle.
+ */
+export async function generateCollectionMetadata({
+  domain,
+  handle,
+}: {
+  domain: string;
+  handle: string;
+}): Promise<Metadata> {
+  const resolution = await resolveStorefrontTenant(domain);
+  if (resolution.status !== "ACTIVE") {
+    return {
+      title: "Store Unavailable | STOREFY",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const { store } = resolution;
+
+  try {
+    const { collections } = await import("@/database/schema");
+    const [collection] = await db
+      .select()
+      .from(collections)
+      .where(
+        and(
+          eq(collections.storeId, store.id),
+          eq(collections.slug, handle),
+          eq(collections.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (!collection) {
+      return {
+        title: `Collection Not Found | ${store.name}`,
+        robots: { index: false, follow: false },
+      };
+    }
+
+    const title = collection.seoTitle || collection.title;
+    const fullTitle = `${title} | ${store.name}`;
+    const description =
+      collection.seoDescription ||
+      collection.description ||
+      `Explore curated products from the ${collection.title} collection at ${store.name}.`;
+
+    const canonicalUrl = `https://${domain}/collections/${handle}`;
+    const ogImage = collection.imageUrl || store.logoUrl || "/placeholder-store.png";
+
+    return {
+      title: fullTitle,
+      description,
+      alternates: { canonical: canonicalUrl },
+      robots: { index: true, follow: true },
+      openGraph: {
+        type: "website",
+        title: fullTitle,
+        description,
+        siteName: store.name,
+        url: canonicalUrl,
+        images: ogImage ? [{ url: ogImage, alt: collection.title }] : [],
+        locale: "en_IN",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fullTitle,
+        description,
+        images: ogImage ? [ogImage] : [],
+      },
+    };
+  } catch {
+    return {
+      title: `Collection | ${store.name}`,
+    };
+  }
+}
+
