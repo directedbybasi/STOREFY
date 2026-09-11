@@ -85,6 +85,13 @@
       "when": 1789095461739,
       "tag": "0011_bright_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789109755229,
+      "tag": "0012_good_the_anarchist",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,3 @@
 export * from "./types";
-export * from "./reporting-service";
+export * from "./notification-service";
 export * from "./actions";

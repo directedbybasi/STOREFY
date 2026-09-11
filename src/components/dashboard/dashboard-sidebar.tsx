@@ -32,6 +32,8 @@ import {
   Building2,
   Wallet,
   Sparkles,
+  Bell,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -268,6 +270,20 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/dashboard/settings/staff",
         icon: UserCheck,
         permission: "staff:read",
+      },
+      {
+        title: "Notifications",
+        href: "/dashboard/notifications",
+        icon: Bell,
+        permission: "dashboard:view",
+        badge: "Phase 15",
+      },
+      {
+        title: "Audit Trail",
+        href: "/dashboard/settings/audit",
+        icon: History,
+        permission: "settings:manage",
+        badge: "Phase 15",
       },
     ],
   },
