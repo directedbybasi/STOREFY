@@ -92,6 +92,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
 
   // 4. Public Storefront Tenant Routing & Rewrites
   // If request is on a tenant subdomain or custom domain, rewrite to dynamic storefront route
@@ -116,6 +117,7 @@ export async function middleware(request: NextRequest) {
       rewriteResponse.headers.set("X-Content-Type-Options", "nosniff");
       rewriteResponse.headers.set("X-Frame-Options", "SAMEORIGIN");
       rewriteResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      rewriteResponse.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
 
       return rewriteResponse;
     }

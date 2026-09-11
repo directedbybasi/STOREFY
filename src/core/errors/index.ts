@@ -124,13 +124,19 @@ export function formatApiError(error: unknown, traceId = "trace_" + Date.now().t
   const timestamp = new Date().toISOString();
 
   if (error instanceof AppError) {
+    // Sanitize non-operational or internal database errors to prevent leaking connection topology
+    const message =
+      error instanceof DatabaseError || !error.isOperational
+        ? "A persistent database operation failed"
+        : error.message;
+
     return {
       statusCode: error.statusCode,
       body: {
         success: false as const,
         error: {
           code: error.code,
-          message: error.message,
+          message,
           details: error.details,
           timestamp,
           traceId,
