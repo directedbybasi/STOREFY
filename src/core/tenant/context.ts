@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { createServerSupabaseClient } from "../../lib/supabase/server";
 import { db } from "../../database/client";
@@ -6,13 +7,27 @@ import { eq, and } from "drizzle-orm";
 import { UnauthorizedError, ForbiddenError, NotFoundError } from "../errors";
 import type { TenantContext, AccountContext } from "./types";
 
+// In-memory cache for the system permission catalog (60s TTL)
+let cachedAllPermissions: Set<string> | null = null;
+let cachedAllPermissionsExpiresAt = 0;
+
+/**
+ * Request-memoized helper to fetch stores for an organization.
+ * Deduplicates multiple queries across layout and page components within a single request.
+ */
+export const getOrgStores = cache(async (organizationId: string) => {
+  return db
+    .select()
+    .from(stores)
+    .where(eq(stores.organizationId, organizationId));
+});
+
 /**
  * Resolves the authenticated merchant's user account and organization context.
  * Strictly verifies identity and staff membership at the organization level.
- * Always succeeds if user is authenticated and belongs to an organization,
- * even when zero stores exist yet (supporting account-first onboarding).
+ * Wrapped with React cache() to guarantee request-scoped execution (deduplicated across layout and pages).
  */
-export async function getAccountContext(): Promise<AccountContext> {
+export const getAccountContext = cache(async (): Promise<AccountContext> => {
   const supabase = await createServerSupabaseClient();
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
@@ -20,7 +35,22 @@ export async function getAccountContext(): Promise<AccountContext> {
     throw new UnauthorizedError("Authentication required to access merchant resources");
   }
 
-  let [dbUser] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+  // Parallelize user lookup and active staff membership lookup
+  const [userQuery, staffList] = await Promise.all([
+    db.select().from(users).where(eq(users.id, authUser.id)).limit(1),
+    db
+      .select({
+        staff: staff,
+        organization: organizations,
+        role: roles,
+      })
+      .from(staff)
+      .innerJoin(organizations, eq(staff.organizationId, organizations.id))
+      .innerJoin(roles, eq(staff.roleId, roles.id))
+      .where(and(eq(staff.userId, authUser.id), eq(staff.isActive, true))),
+  ]);
+
+  let dbUser = userQuery[0];
 
   if (!dbUser) {
     const [insertedUser] = await db
@@ -39,17 +69,6 @@ export async function getAccountContext(): Promise<AccountContext> {
     dbUser = insertedUser;
   }
 
-  const staffList = await db
-    .select({
-      staff: staff,
-      organization: organizations,
-      role: roles,
-    })
-    .from(staff)
-    .innerJoin(organizations, eq(staff.organizationId, organizations.id))
-    .innerJoin(roles, eq(staff.roleId, roles.id))
-    .where(and(eq(staff.userId, dbUser.id), eq(staff.isActive, true)));
-
   if (!staffList || staffList.length === 0) {
     throw new ForbiddenError("You do not have staff access to any organization");
   }
@@ -59,8 +78,15 @@ export async function getAccountContext(): Promise<AccountContext> {
   let permissionSet = new Set<string>();
 
   if (isOwner || dbUser.isPlatformAdmin) {
-    const allPerms = await db.select({ code: permissions.code }).from(permissions);
-    permissionSet = new Set(allPerms.map((p) => p.code));
+    const now = Date.now();
+    if (cachedAllPermissions && now < cachedAllPermissionsExpiresAt) {
+      permissionSet = cachedAllPermissions;
+    } else {
+      const allPerms = await db.select({ code: permissions.code }).from(permissions);
+      permissionSet = new Set(allPerms.map((p) => p.code));
+      cachedAllPermissions = permissionSet;
+      cachedAllPermissionsExpiresAt = now + 60_000;
+    }
   } else {
     const rolePerms = await db
       .select({ code: permissions.code })
@@ -96,15 +122,14 @@ export async function getAccountContext(): Promise<AccountContext> {
     permissions: permissionSet,
     isOwner,
   };
-}
+});
 
 /**
  * Resolves active tenant context for store-scoped operations.
  * Independently validates staff membership and access to targetStoreId.
- * Throws NotFoundError("Store") if no stores exist in the organization or
- * if an invalid/unauthorized store ID is provided.
+ * Wrapped with React cache() for request-level memoization.
  */
-export async function getTenantContext(targetStoreId?: string): Promise<TenantContext> {
+export const getTenantContext = cache(async (targetStoreId?: string): Promise<TenantContext> => {
   const account = await getAccountContext();
 
   const cookieStore = await cookies();
@@ -114,11 +139,8 @@ export async function getTenantContext(targetStoreId?: string): Promise<TenantCo
     headerStore.get("x-store-id") ||
     cookieStore.get("storefy_active_store_id")?.value;
 
-  // Query stores for this organization
-  const orgStores = await db
-    .select()
-    .from(stores)
-    .where(eq(stores.organizationId, account.organization.id));
+  // Query stores for this organization via memoized helper
+  const orgStores = await getOrgStores(account.organization.id);
 
   if (!orgStores || orgStores.length === 0) {
     throw new NotFoundError("Store", resolvedStoreId || "active");
@@ -152,17 +174,18 @@ export async function getTenantContext(targetStoreId?: string): Promise<TenantCo
       isActive: matchingStore.isActive,
     },
   };
-}
+});
 
 /**
  * Resolves optional tenant context for dashboard shells and general views.
  * If the organization has zero stores, returns tenant as null while providing
  * the verified account context.
+ * Wrapped with React cache() for request-level memoization.
  */
-export async function getOptionalTenantContext(targetStoreId?: string): Promise<{
+export const getOptionalTenantContext = cache(async (targetStoreId?: string): Promise<{
   account: AccountContext;
   tenant: TenantContext | null;
-}> {
+}> => {
   const account = await getAccountContext();
 
   const cookieStore = await cookies();
@@ -172,11 +195,8 @@ export async function getOptionalTenantContext(targetStoreId?: string): Promise<
     headerStore.get("x-store-id") ||
     cookieStore.get("storefy_active_store_id")?.value;
 
-  // Query stores for this organization
-  const orgStores = await db
-    .select()
-    .from(stores)
-    .where(eq(stores.organizationId, account.organization.id));
+  // Query stores for this organization via memoized helper
+  const orgStores = await getOrgStores(account.organization.id);
 
   if (!orgStores || orgStores.length === 0) {
     return { account, tenant: null };
@@ -210,5 +230,5 @@ export async function getOptionalTenantContext(targetStoreId?: string): Promise<
   };
 
   return { account, tenant };
-}
+});
 

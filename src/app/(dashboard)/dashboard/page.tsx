@@ -99,27 +99,26 @@ export default async function DashboardPage() {
 
   const ctx = tenant;
 
-  // Real database metrics from hosted PostgreSQL instance
-  const [storeCountResult] = await db
-    .select({ count: stores.id })
-    .from(stores)
-    .where(eq(stores.organizationId, ctx.organization.id));
-
-  const domainsList = await db
-    .select()
-    .from(storeDomains)
-    .where(eq(storeDomains.storeId, ctx.store.id));
-
-  const staffList = await db
-    .select()
-    .from(staff)
-    .where(eq(staff.organizationId, ctx.organization.id));
-
-  const [currentSettings] = await db
-    .select()
-    .from(storeSettings)
-    .where(eq(storeSettings.storeId, ctx.store.id))
-    .limit(1);
+  // Real database metrics from hosted PostgreSQL instance - parallelized for rapid loading
+  const [[storeCountResult], domainsList, staffList, [currentSettings]] = await Promise.all([
+    db
+      .select({ count: stores.id })
+      .from(stores)
+      .where(eq(stores.organizationId, ctx.organization.id)),
+    db
+      .select()
+      .from(storeDomains)
+      .where(eq(storeDomains.storeId, ctx.store.id)),
+    db
+      .select()
+      .from(staff)
+      .where(eq(staff.organizationId, ctx.organization.id)),
+    db
+      .select()
+      .from(storeSettings)
+      .where(eq(storeSettings.storeId, ctx.store.id))
+      .limit(1),
+  ]);
 
   // Setup checklist items
   const hasCustomDomain = domainsList.some((d) => d.sslStatus === "ACTIVE");

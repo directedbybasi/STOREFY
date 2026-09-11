@@ -14,6 +14,6 @@ test.describe("STOREFY Platform Smoke Tests", () => {
   test("root homepage loads platform title", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle(/STOREFY/);
-    await expect(page.locator("text=Phase 1 Foundation Active")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   });
 });

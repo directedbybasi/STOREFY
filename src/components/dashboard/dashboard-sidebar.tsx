@@ -414,10 +414,18 @@ export function DashboardSidebar({
 
                   const Icon = item.icon;
 
+                  const isPrimary =
+                    item.href === "/dashboard" ||
+                    item.href === "/dashboard/orders" ||
+                    item.href === "/dashboard/products" ||
+                    item.href === "/dashboard/customers" ||
+                    item.href === "/dashboard/inventory";
+
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={isPrimary ? true : undefined}
                       onClick={onItemClick}
                       title={collapsed ? item.title : undefined}
                       className={cn(

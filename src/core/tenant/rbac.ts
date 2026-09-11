@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { ForbiddenError } from "../errors";
 import { getTenantContext } from "./context";
 import type { TenantContext } from "./types";
@@ -5,6 +6,7 @@ import type { TenantContext } from "./types";
 /**
  * Server-side RBAC Permission Guard.
  * Strictly verifies authenticated user's assigned role and module permissions for the target store.
+ * Wrapped with React cache() to guarantee request-scoped deduplication.
  *
  * ZERO-TRUST INVARIANT:
  * 1. Identifies the authenticated user via secure session cookies.
@@ -13,10 +15,10 @@ import type { TenantContext } from "./types";
  * 4. Bypasses for platform superadmins and organization OWNERs (who possess all permissions).
  * 5. Rejects unauthorized access with an explicit ForbiddenError.
  */
-export async function requirePermission(
+export const requirePermission = cache(async (
   permissionCode: string,
   targetStoreId?: string
-): Promise<TenantContext> {
+): Promise<TenantContext> => {
   const ctx = await getTenantContext(targetStoreId);
 
   // Platform superadmin bypass
@@ -37,7 +39,7 @@ export async function requirePermission(
   }
 
   return ctx;
-}
+});
 
 /**
  * Pure helper to verify if a given permission set contains the specified permission.

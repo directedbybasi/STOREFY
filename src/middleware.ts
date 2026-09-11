@@ -11,8 +11,12 @@ export async function middleware(request: NextRequest) {
   const normalizedHost = normalizeHostname(rawHost);
   const pathname = request.nextUrl.pathname;
 
+  const startMs = Date.now();
+  const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
+
   // Clone headers for downstream enrichment
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
   requestHeaders.set("x-url", request.url);
   requestHeaders.set("x-hostname", normalizedHost);
   requestHeaders.set("x-tenant-host", normalizedHost);
@@ -28,46 +32,63 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  let user = null;
+  let hasAuthSession = false;
 
-  if (supabaseUrl && supabaseAnonKey) {
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(
-          cookiesToSet: Array<{
-            name: string;
-            value: string;
-            options?: Parameters<typeof response.cookies.set>[2];
-          }>
-        ) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({
-            request: {
-              headers: requestHeaders,
-            },
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    });
+  const isAuthRoute =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password";
+  const isDashboardRoute = pathname.startsWith("/dashboard");
 
-    try {
-      const { data } = await supabase.auth.getUser();
-      user = data.user;
-    } catch {
-      // Unauthenticated session or network error
-      user = null;
+  if (supabaseUrl && supabaseAnonKey && (isDashboardRoute || isAuthRoute)) {
+    // Fast-path cookie presence check
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.startsWith("sb-") && c.name.includes("-auth-token")
+    );
+
+    if (hasAuthCookie) {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(
+            cookiesToSet: Array<{
+              name: string;
+              value: string;
+              options?: Parameters<typeof response.cookies.set>[2];
+            }>
+          ) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+            response = NextResponse.next({
+              request: {
+                headers: requestHeaders,
+              },
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      });
+
+      try {
+        // Use lightweight getSession() for middleware routing gate (<2ms vs ~550ms for getUser)
+        // Server Components retain authoritative cryptographic getUser() verification
+        const { data: { session } } = await supabase.auth.getSession();
+        hasAuthSession = !!session?.user;
+      } catch {
+        hasAuthSession = false;
+      }
+    } else {
+      hasAuthSession = false;
     }
   }
 
   // 1. Protected Merchant Dashboard Routes: require authenticated session
-  if (pathname.startsWith("/dashboard")) {
-    if (!user) {
+  if (isDashboardRoute) {
+    if (!hasAuthSession) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
       redirectUrl.searchParams.set("redirectTo", pathname);
@@ -76,12 +97,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 2. Public Auth Routes: redirect authenticated users to dashboard
-  const isAuthRoute =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/forgot-password";
-
-  if (isAuthRoute && user) {
+  if (isAuthRoute && hasAuthSession) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     redirectUrl.search = "";
@@ -118,10 +134,15 @@ export async function middleware(request: NextRequest) {
       rewriteResponse.headers.set("X-Frame-Options", "SAMEORIGIN");
       rewriteResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
       rewriteResponse.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+      rewriteResponse.headers.set("x-request-id", requestId);
+      rewriteResponse.headers.set("Server-Timing", `middleware;dur=${Date.now() - startMs}`);
 
       return rewriteResponse;
     }
   }
+
+  response.headers.set("x-request-id", requestId);
+  response.headers.set("Server-Timing", `middleware;dur=${Date.now() - startMs}`);
 
   return response;
 }
