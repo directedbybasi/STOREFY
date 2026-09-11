@@ -85,3 +85,30 @@ export async function queryAuditLogs(input: QueryAuditInput) {
     .limit(limit)
     .offset(offset);
 }
+
+/**
+ * Standardized audit logger adapter.
+ */
+export async function recordAuditLog(input: {
+  storeId: string;
+  actorType?: "STAFF" | "USER" | "SYSTEM" | "API";
+  actorId?: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  before?: Record<string, unknown>;
+  after?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}) {
+  return await recordAuditEvent({
+    storeId: input.storeId,
+    actorType: (input.actorType || "USER") as AuditActorType,
+    actorId: input.actorId,
+    event: input.action,
+    entityType: input.entity,
+    entityId: input.entityId,
+    beforeSummary: input.before,
+    afterSummary: input.after,
+    metadata: input.metadata,
+  });
+}

@@ -83,6 +83,34 @@ export const CANONICAL_PERMISSIONS = [
 
   // Analytics
   { module: "analytics", action: "view", code: "analytics:view" },
+
+  // Phase 16: POS & Omnichannel
+  { module: "pos", action: "read", code: "pos:read" },
+  { module: "pos", action: "write", code: "pos:write" },
+  { module: "pos", action: "refund", code: "pos:refund" },
+
+  // Phase 16: B2B Wholesale
+  { module: "b2b", action: "read", code: "b2b:read" },
+  { module: "b2b", action: "write", code: "b2b:write" },
+
+  // Phase 16: Markets & Global
+  { module: "markets", action: "read", code: "markets:read" },
+  { module: "markets", action: "write", code: "markets:write" },
+
+  // Phase 16: CMS & Content
+  { module: "content", action: "read", code: "content:read" },
+  { module: "content", action: "write", code: "content:write" },
+
+  // Phase 16: Developer & API
+  { module: "developer", action: "read", code: "developer:read" },
+  { module: "developer", action: "write", code: "developer:write" },
+  { module: "developer", action: "write", code: "api_keys:write" },
+  { module: "developer", action: "write", code: "webhooks:write" },
+
+  // Phase 16: Data Portability
+  { module: "portability", action: "read", code: "exports:read" },
+  { module: "portability", action: "write", code: "exports:write" },
+  { module: "portability", action: "write", code: "imports:write" },
 ] as const;
 
 export const ROLE_PERMISSION_MATRIX: Record<string, string[]> = {

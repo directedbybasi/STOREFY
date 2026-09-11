@@ -60,6 +60,7 @@ export const orders = pgTable(
     checkoutSessionId: uuid("checkout_session_id").references(() => checkoutSessions.id, {
       onDelete: "set null",
     }),
+    salesChannel: varchar("sales_channel", { length: 50 }).notNull().default("ONLINE"), // ONLINE, POS, B2B, MARKETPLACE, SOCIAL
     status: varchar("status", { length: 50 }).notNull().default("CONFIRMED"), // PENDING, CONFIRMED, PROCESSING, PACKED, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED, RTO
     paymentStatus: varchar("payment_status", { length: 50 }).notNull().default("PENDING"), // PENDING, AUTHORIZED, CAPTURED, FAILED, REFUNDED, PARTIALLY_REFUNDED
     paymentMethod: varchar("payment_method", { length: 50 }).notNull().default("COD"), // COD, ONLINE
@@ -86,6 +87,7 @@ export const orders = pgTable(
     uniqueIndex("idx_orders_store_number").on(table.storeId, table.orderNumber),
     index("idx_orders_store_id").on(table.storeId),
     index("idx_orders_customer_id").on(table.customerId),
+    index("idx_orders_sales_channel").on(table.storeId, table.salesChannel),
     index("idx_orders_status").on(table.storeId, table.status),
     index("idx_orders_created_at").on(table.storeId, table.createdAt),
     index("idx_orders_checkout_session").on(table.checkoutSessionId),
