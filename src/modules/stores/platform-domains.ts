@@ -31,11 +31,14 @@ export function isPlatformApexDomain(
 
   const normalizedRoot = normalizeHostname(rootDomain);
 
-  // 1. Localhost and loopback interfaces
+  // 1. Localhost, loopback interfaces, and private LAN IP addresses
   if (
     normalizedHost === "localhost" ||
     normalizedHost === "127.0.0.1" ||
-    normalizedHost === "::1"
+    normalizedHost === "::1" ||
+    normalizedHost.startsWith("192.168.") ||
+    normalizedHost.startsWith("10.") ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(normalizedHost)
   ) {
     return true;
   }
