@@ -20,3 +20,5 @@ export * from "./inventory";
 export * from "./customers";
 export * from "./cart";
 export * from "./checkout";
+export * from "./orders";
+

@@ -22,6 +22,8 @@ import {
   confirmStorefrontCheckoutAction,
   initializeStorefrontCheckoutAction,
 } from "@/modules/checkout/actions";
+import { createStorefrontOrderAction } from "@/modules/orders/actions";
+import type { OrderDetailDTO } from "@/modules/orders/types";
 
 interface CheckoutFlowProps {
   initialSession: CheckoutSessionDTO;
@@ -30,6 +32,7 @@ interface CheckoutFlowProps {
 
 export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
   const [session, setSession] = useState<CheckoutSessionDTO>(initialSession);
+  const [createdOrder, setCreatedOrder] = useState<OrderDetailDTO | null>(null);
   const [step, setStep] = useState<
     "CONTACT" | "ADDRESS" | "SHIPPING" | "PAYMENT" | "REVIEW" | "CONFIRMATION"
   >(initialSession.step || "CONTACT");
@@ -177,13 +180,23 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await confirmStorefrontCheckoutAction(session.id, domain);
-      if (res.success) {
-        setSession(res.session);
-        setStep("CONFIRMATION");
+      // 1. Confirm checkout session
+      const confirmRes = await confirmStorefrontCheckoutAction(session.id, domain);
+      if (!confirmRes.success) {
+        throw new Error("Failed to confirm checkout.");
       }
+      setSession(confirmRes.session);
+
+      // 2. Create authoritative order from checkout session & reservation
+      const orderRes = await createStorefrontOrderAction(session.id, domain);
+      if (!orderRes.success) {
+        throw new Error(orderRes.error || "Failed to create order.");
+      }
+
+      setCreatedOrder(orderRes.order);
+      setStep("CONFIRMATION");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to confirm checkout.");
+      setError(err instanceof Error ? err.message : "Failed to place order.");
     } finally {
       setIsLoading(false);
     }
@@ -216,17 +229,21 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
 
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-            Checkout Prepared Successfully!
+            {createdOrder ? "Order Placed Successfully!" : "Checkout Completed!"}
           </h1>
           <p className="text-sm text-slate-600 max-w-md mx-auto">
-            Your stock reservation has been secured and contact & delivery details are verified.
+            {createdOrder
+              ? `Thank you for your order! Your confirmation and tax invoice have been generated.`
+              : "Your stock reservation has been secured and contact & delivery details are verified."}
           </p>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-6 text-left space-y-4 shadow-sm">
           <div className="flex justify-between items-center pb-3 border-b border-slate-100 text-xs text-slate-500">
-            <span>Checkout Reference</span>
-            <span className="font-mono font-semibold text-slate-900">{session.id}</span>
+            <span>{createdOrder ? "Order Number" : "Checkout Reference"}</span>
+            <span className="font-mono font-bold text-slate-900 text-sm">
+              {createdOrder ? createdOrder.orderNumber : session.id}
+            </span>
           </div>
 
           <div className="space-y-2 text-sm">
@@ -240,7 +257,10 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Payment Method</span>
-              <span className="font-medium text-slate-900">{session.paymentMethod} ({session.paymentStatus})</span>
+              <span className="font-medium text-slate-900">
+                {session.paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"} (
+                {session.paymentStatus})
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Delivery Address</span>
@@ -251,24 +271,38 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
             </div>
             <div className="flex justify-between pt-2 border-t border-slate-100 font-bold">
               <span className="text-slate-900">Grand Total</span>
-              <span className="text-slate-900">{session.totalFormatted}</span>
+              <span className="text-slate-900 font-mono">{session.totalFormatted}</span>
             </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 space-y-1">
-            <p className="font-semibold text-slate-800">Next Step (Phase 9 Order Lifecycle):</p>
-            <p>
-              This checkout session is prepared for final order confirmation, GST invoicing, and carrier fulfillment in Phase 9.
-            </p>
           </div>
         </div>
 
-        <div className="pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          {createdOrder && createdOrder.invoice && (
+            <a
+              href={`/api/v1/invoices/${createdOrder.invoice.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-xs hover:bg-slate-50 transition shadow-sm"
+            >
+              <span>Download GST Invoice (PDF)</span>
+            </a>
+          )}
+
+          {createdOrder && (
+            <Link
+              href={`/${domain}/account/orders/${createdOrder.id}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition shadow-sm"
+            >
+              <span>View & Track Order</span>
+            </Link>
+          )}
+
           <Link
             href={`/${domain}`}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-xs hover:bg-slate-50 transition"
           >
-            <span>Return to Store Home</span>
+            <span>Continue Shopping</span>
           </Link>
         </div>
       </div>

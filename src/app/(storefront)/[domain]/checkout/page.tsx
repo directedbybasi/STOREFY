@@ -36,7 +36,7 @@ export default async function StorefrontCheckoutPage({ params }: CheckoutPagePro
   let checkoutSession;
   try {
     checkoutSession = await initializeCheckoutSession(store.id, sessionToken);
-  } catch (err: any) {
+  } catch {
     // If cart is empty or stock insufficient, redirect to cart with error
     redirect(`/${domain}/cart`);
   }

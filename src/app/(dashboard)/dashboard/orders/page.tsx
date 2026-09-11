@@ -1,50 +1,121 @@
 import React from "react";
-import { requirePermission } from "@/core/tenant/rbac";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { requirePermission } from "@/core/tenant/rbac";
+import { listStoreOrders } from "@/modules/orders/order-service";
+import { OrdersTable } from "@/components/dashboard/orders-table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  ShoppingBag,
+  Clock,
+  Truck,
+  RotateCcw,
+  IndianRupee,
+  Plus,
+} from "lucide-react";
+import { formatPaiseToRupees } from "@/modules/cart/service";
 
 export const metadata = {
   title: "Orders & Fulfillment — STOREFY",
+  description: "Manage orders, shipments, GST invoices, and customer returns.",
 };
 
-export default async function OrdersPage() {
+export default async function OrdersDashboardPage() {
   const ctx = await requirePermission("orders:read");
+
+  const { orders, total } = await listStoreOrders(ctx.store.id, {
+    limit: 50,
+  });
+
+  // Calculate quick metrics
+  const pendingOrders = orders.filter(
+    (o) => o.status === "CONFIRMED" || o.status === "PROCESSING" || o.status === "PACKED"
+  ).length;
+
+  const shippedOrders = orders.filter(
+    (o) => o.status === "SHIPPED" || o.status === "OUT_FOR_DELIVERY"
+  ).length;
+
+  const totalRevenuePaise = orders
+    .filter((o) => o.status !== "CANCELLED")
+    .reduce((sum, o) => sum + o.totalPaise, 0);
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Orders & Shipments</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">Orders & Shipments</h1>
           <p className="text-xs text-slate-400">
-            Real-time order queue, automated tracking, carrier fulfillment, and GST tax invoices for {ctx.store.name}.
+            Real-time orders queue, carrier fulfillment, tracking, and GST tax invoices for {ctx.store.name}.
           </p>
         </div>
-        <Badge variant="outline" className="border-blue-500/30 bg-blue-950/40 text-blue-300 text-[10px] w-fit">
-          Roadmap: Phase 6
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild className="h-8 border-slate-700 text-xs text-slate-300">
+            <Link href="/dashboard/returns">
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-amber-400" />
+              Returns Portal
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <Card className="border-slate-800 bg-slate-900/60 p-12 text-center">
-        <CardHeader className="p-0">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 mb-4 shadow-inner">
-            <ShoppingCart className="h-7 w-7" />
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-medium text-slate-400">Total Orders</p>
+              <p className="text-xl font-bold text-white font-mono mt-1">{total}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+              <ShoppingBag className="h-5 w-5" />
+            </div>
           </div>
-          <CardTitle className="text-base font-bold text-white">
-            Order Processing Pipeline Coming in Phase 6
-          </CardTitle>
-          <CardDescription className="mx-auto max-w-md text-xs text-slate-400 mt-1">
-            Orders placed on your storefront will appear here with instant courier routing, WhatsApp updates, and PDF invoice generation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Button variant="outline" size="sm" asChild className="border-slate-700 text-xs text-slate-300">
-            <Link href="/dashboard">Back to Overview</Link>
-          </Button>
-        </CardContent>
-      </Card>
+        </Card>
+
+        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-medium text-slate-400">Pending Fulfillment</p>
+              <p className="text-xl font-bold text-amber-400 font-mono mt-1">{pendingOrders}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <Clock className="h-5 w-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-medium text-slate-400">In Transit</p>
+              <p className="text-xl font-bold text-cyan-400 font-mono mt-1">{shippedOrders}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+              <Truck className="h-5 w-5" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-medium text-slate-400">Total Order Volume</p>
+              <p className="text-xl font-bold text-emerald-400 font-mono mt-1">
+                {formatPaiseToRupees(totalRevenuePaise)}
+              </p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <IndianRupee className="h-5 w-5" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Orders Table with Search & Status Filters */}
+      <OrdersTable initialOrders={orders} total={total} />
     </div>
   );
 }
