@@ -51,6 +51,14 @@ export function usePermission(permissionCode: string): boolean {
   return tenant.permissions.has(permissionCode);
 }
 
+export function useCapability(capability: string): boolean {
+  const { tenant } = useDashboard();
+  if (tenant.user.isPlatformAdmin) {
+    return true;
+  }
+  return !!tenant.capabilities?.has(capability);
+}
+
 interface CanProps {
   permission: string;
   children: React.ReactNode;
@@ -59,6 +67,22 @@ interface CanProps {
 
 export function Can({ permission, children, fallback = null }: CanProps) {
   const isAllowed = usePermission(permission);
+  if (!isAllowed) {
+    return <>{fallback}</>;
+  }
+  return <>{children}</>;
+}
+
+export function CanCapability({
+  capability,
+  children,
+  fallback = null,
+}: {
+  capability: string;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
+  const isAllowed = useCapability(capability);
   if (!isAllowed) {
     return <>{fallback}</>;
   }

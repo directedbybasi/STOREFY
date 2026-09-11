@@ -95,6 +95,7 @@ export function isInternalOrSystemRoute(pathname: string): boolean {
   if (!pathname) return false;
   return (
     pathname.startsWith("/api") ||
+    pathname.startsWith("/admin") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||

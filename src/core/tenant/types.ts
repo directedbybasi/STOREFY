@@ -10,6 +10,8 @@ export interface TenantContextStore {
   isActive: boolean;
 }
 
+export type MerchantType = "STANDARD" | "SUPPLIER";
+
 export interface AccountContext {
   user: {
     id: string;
@@ -23,7 +25,9 @@ export interface AccountContext {
     name: string;
     slug: string;
     billingEmail: string;
+    merchantType: MerchantType;
   };
+  capabilities: Set<"SUPPLIER" | string>;
   staff: {
     id: string;
     roleId: string;

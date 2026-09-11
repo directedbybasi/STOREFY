@@ -3,9 +3,10 @@ import { cookies, headers } from "next/headers";
 import { createServerSupabaseClient } from "../../lib/supabase/server";
 import { db } from "../../database/client";
 import { users, organizations, stores, staff, roles, rolePermissions, permissions } from "../../database/schema";
-import { eq, and } from "drizzle-orm";
+import { suppliers } from "../../database/schema/dropshipping";
+import { eq, and, ne } from "drizzle-orm";
 import { UnauthorizedError, ForbiddenError, NotFoundError } from "../errors";
-import type { TenantContext, AccountContext } from "./types";
+import type { TenantContext, AccountContext, MerchantType } from "./types";
 
 // In-memory cache for the system permission catalog (60s TTL)
 let cachedAllPermissions: Set<string> | null = null;
@@ -150,6 +151,22 @@ export const getAccountContext = cache(async (): Promise<AccountContext> => {
     permissionSet = new Set(rolePerms.map((p) => p.code));
   }
 
+  // Resolve merchant capabilities: check organization merchantType or active supplier entity
+  const supplierRows = await db
+    .select({ id: suppliers.id })
+    .from(suppliers)
+    .where(and(eq(suppliers.organizationId, activeStaff.organization.id), ne(suppliers.status, "REJECTED")))
+    .limit(1)
+    .catch(() => []);
+
+  const isSupplierOrg =
+    activeStaff.organization.merchantType === "SUPPLIER" || supplierRows.length > 0;
+
+  const capabilities = new Set<string>();
+  if (isSupplierOrg) {
+    capabilities.add("SUPPLIER");
+  }
+
   const accountResult: AccountContext = {
     user: {
       id: dbUser.id,
@@ -163,7 +180,9 @@ export const getAccountContext = cache(async (): Promise<AccountContext> => {
       name: activeStaff.organization.name,
       slug: activeStaff.organization.slug,
       billingEmail: activeStaff.organization.billingEmail,
+      merchantType: (isSupplierOrg ? "SUPPLIER" : (activeStaff.organization.merchantType as MerchantType) || "STANDARD"),
     },
+    capabilities,
     staff: {
       id: activeStaff.staff.id,
       roleId: activeStaff.staff.roleId,

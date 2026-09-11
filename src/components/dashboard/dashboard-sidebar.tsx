@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -37,6 +38,7 @@ import {
   FileText,
   Code,
   Database,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -50,6 +52,7 @@ interface NavItem {
 
 interface NavGroup {
   groupName: string;
+  capability?: string;
   items: NavItem[];
 }
 
@@ -189,14 +192,15 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    groupName: "Supplier Portal",
+    groupName: "Supplier Business",
+    capability: "SUPPLIER",
     items: [
       {
         title: "Supplier Overview",
         href: "/dashboard/supplier",
         icon: Building2,
         permission: "supplier:read",
-        badge: "Phase 12",
+        badge: "Capability",
       },
       {
         title: "Supplier Products",
@@ -426,6 +430,11 @@ export function DashboardSidebar({
       {/* Navigation Links */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {NAV_GROUPS.map((group) => {
+          // If group requires a capability (e.g. SUPPLIER), verify the merchant has that capability
+          if (group.capability && !tenant.user.isPlatformAdmin && !tenant.capabilities?.has(group.capability)) {
+            return null;
+          }
+
           // Filter items based on user permissions
           const accessibleItems = group.items.filter((item) => {
             if (!item.permission) return true;
@@ -505,6 +514,25 @@ export function DashboardSidebar({
           );
         })}
       </div>
+
+      {/* Platform Admin Portal Link (Platform Admins only) */}
+      {!collapsed && tenant.user.isPlatformAdmin && (
+        <div className="border-t border-slate-800/80 p-3">
+          <Link
+            href="/admin"
+            className="flex items-center justify-between rounded-lg border border-violet-500/30 bg-violet-950/30 p-2.5 text-xs text-violet-300 transition-colors hover:border-violet-500/50 hover:bg-violet-900/40"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-violet-400 shrink-0" />
+              <div className="truncate">
+                <p className="font-semibold text-white text-[11px]">Platform Admin</p>
+                <p className="text-[10px] text-violet-400">Internal Operations</p>
+              </div>
+            </div>
+            <ChevronRight className="h-3.5 w-3.5 text-violet-400" />
+          </Link>
+        </div>
+      )}
 
       {/* Footer / Storefront link */}
       {!collapsed && tenant.store && (

@@ -39,8 +39,9 @@ export async function middleware(request: NextRequest) {
     pathname === "/register" ||
     pathname === "/forgot-password";
   const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isAdminRoute = pathname.startsWith("/admin");
 
-  if (supabaseUrl && supabaseAnonKey && (isDashboardRoute || isAuthRoute)) {
+  if (supabaseUrl && supabaseAnonKey && (isDashboardRoute || isAdminRoute || isAuthRoute)) {
     // Fast-path cookie presence check
     const allCookies = request.cookies.getAll();
     const hasAuthCookie = allCookies.some(
@@ -86,8 +87,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 1. Protected Merchant Dashboard Routes: require authenticated session
-  if (isDashboardRoute) {
+  // 1. Protected Merchant Dashboard & Platform Admin Routes: require authenticated session
+  if (isDashboardRoute || isAdminRoute) {
     if (!hasAuthSession) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";

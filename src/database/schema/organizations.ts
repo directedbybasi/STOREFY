@@ -11,6 +11,7 @@ export const organizations = pgTable(
     slug: varchar("slug", { length: 100 }).notNull().unique(),
     billingEmail: varchar("billing_email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 32 }),
+    merchantType: varchar("merchant_type", { length: 50 }).notNull().default("STANDARD"), // STANDARD, SUPPLIER
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
