@@ -64,6 +64,20 @@
       "when": 1789086440184,
       "tag": "0008_nosy_lila_cheney",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789088825171,
+      "tag": "0009_nappy_whizzer",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789094136872,
+      "tag": "0010_brave_diamondback",
+      "breakpoints": true
     }
   ]
 }

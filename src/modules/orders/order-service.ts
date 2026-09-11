@@ -21,6 +21,8 @@ import { consumeCheckoutReservation } from "@/modules/checkout/reservation";
 import { generateOrderNumber } from "./numbering";
 import { assertValidOrderTransition, isOrderCancellable } from "./state-machine";
 import { createOrderInvoice, buildInvoiceDTO } from "./invoice-service";
+import { routeOrderToSuppliers } from "@/modules/dropshipping/routing/order-router";
+import { routeOrderToMarketplaces } from "@/modules/marketplaces/orders/marketplace-order-service";
 import type {
   OrderDetailDTO,
   OrderSummaryDTO,
@@ -133,6 +135,8 @@ export async function createOrderFromCheckoutSession(
         currency: session.currency || "INR",
         subtotalAmount: session.subtotalAmount,
         discountAmount: session.discountAmount,
+        couponCode: session.couponCode,
+        couponSnapshot: session.couponSnapshot,
         taxAmount: session.taxAmount,
         shippingAmount: session.shippingCost,
         totalAmount: session.totalAmount,
@@ -146,6 +150,29 @@ export async function createOrderFromCheckoutSession(
         notes: null,
       })
       .returning();
+
+    // A2. If coupon was applied, atomically redeem usage count
+    if (session.couponCode && session.discountAmount > 0) {
+      const { coupons } = await import("@/database/schema");
+      const [appliedCoupon] = await tx
+        .select({ id: coupons.id })
+        .from(coupons)
+        .where(and(eq(coupons.storeId, storeId), eq(coupons.code, session.couponCode)))
+        .limit(1);
+
+      if (appliedCoupon) {
+        const { redeemCouponAtomic } = await import("@/modules/marketing/coupons/coupon-engine");
+        await redeemCouponAtomic(
+          tx,
+          appliedCoupon.id,
+          storeId,
+          newOrder.id,
+          session.discountAmount,
+          customerId || session.customerId,
+          session.email
+        );
+      }
+    }
 
     // B. Snapshot line items into order_items
     for (const item of reservedItems) {
@@ -190,6 +217,20 @@ export async function createOrderFromCheckoutSession(
     await createOrderInvoice(storeId, createdOrder.id);
   } catch (invErr) {
     console.error("[INVOICE GENERATION WARNING]", invErr);
+  }
+
+  // 6. Dropshipping Supplier Routing (automatic order splitting by supplier)
+  try {
+    await routeOrderToSuppliers(createdOrder.id, storeId);
+  } catch (dsErr) {
+    console.error("[DROPSHIPPING ROUTING WARNING]", dsErr);
+  }
+
+  // 7. Marketplace Reselling Routing (Meesho & external connectors)
+  try {
+    await routeOrderToMarketplaces(createdOrder.id, storeId);
+  } catch (mpErr) {
+    console.error("[MARKETPLACE ROUTING WARNING]", mpErr);
   }
 
   return await getOrderById(storeId, createdOrder.id);
@@ -639,6 +680,8 @@ function buildOrderDetailDTO(
     subtotalFormatted: formatPaiseToRupees(order.subtotalAmount),
     discountPaise: order.discountAmount,
     discountFormatted: formatPaiseToRupees(order.discountAmount),
+    couponCode: order.couponCode,
+    couponSnapshot: order.couponSnapshot,
     taxPaise: order.taxAmount,
     taxFormatted: formatPaiseToRupees(order.taxAmount),
     shippingPaise: order.shippingAmount,

@@ -26,6 +26,12 @@ import {
   Boxes,
   CreditCard,
   Truck,
+  Tag,
+  Star,
+  Store,
+  Building2,
+  Wallet,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -122,7 +128,97 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/dashboard/marketing",
         icon: Megaphone,
         permission: "marketing:read",
-        badge: "Phase 10",
+        badge: "Phase 11",
+      },
+      {
+        title: "Coupons & Discounts",
+        href: "/dashboard/marketing/coupons",
+        icon: Tag,
+        permission: "marketing:read",
+      },
+      {
+        title: "Product Reviews",
+        href: "/dashboard/reviews",
+        icon: Star,
+        permission: "marketing:read",
+      },
+    ],
+  },
+  {
+    groupName: "Dropshipping",
+    items: [
+      {
+        title: "Marketplace",
+        href: "/dashboard/dropshipping",
+        icon: Store,
+        permission: "dropshipping:read",
+        badge: "Phase 12",
+      },
+      {
+        title: "Supplier Orders",
+        href: "/dashboard/dropshipping/orders",
+        icon: Truck,
+        permission: "dropshipping:orders",
+      },
+    ],
+  },
+  {
+    groupName: "Supplier Portal",
+    items: [
+      {
+        title: "Supplier Overview",
+        href: "/dashboard/supplier",
+        icon: Building2,
+        permission: "supplier:read",
+        badge: "Phase 12",
+      },
+      {
+        title: "Supplier Products",
+        href: "/dashboard/supplier/products",
+        icon: Package,
+        permission: "supplier:products",
+      },
+      {
+        title: "Fulfillment Orders",
+        href: "/dashboard/supplier/orders",
+        icon: ShoppingCart,
+        permission: "supplier:orders",
+      },
+      {
+        title: "Earnings & Payouts",
+        href: "/dashboard/supplier/earnings",
+        icon: Wallet,
+        permission: "supplier:finance",
+      },
+    ],
+  },
+  {
+    groupName: "Meesho Reselling",
+    items: [
+      {
+        title: "Meesho Overview",
+        href: "/dashboard/meesho",
+        icon: ShoppingBag,
+        permission: "marketplace:read",
+        badge: "Phase 13",
+      },
+      {
+        title: "Import Product",
+        href: "/dashboard/meesho/import",
+        icon: Sparkles,
+        permission: "marketplace:import",
+      },
+      {
+        title: "Imported Products",
+        href: "/dashboard/meesho/products",
+        icon: Package,
+        permission: "marketplace:read",
+      },
+      {
+        title: "Fulfillment Tasks",
+        href: "/dashboard/meesho/orders",
+        icon: Truck,
+        permission: "marketplace:orders",
       },
     ],
   },

@@ -111,13 +111,51 @@ export default async function StorefrontProductDetailPage({
     if (cat) categoryName = cat.name;
   }
 
+  // Load reviews & rating distribution for PDP
+  const { getProductRatingDistribution, getApprovedProductReviews } = await import(
+    "@/modules/marketing/reviews/review-service"
+  );
+  const [ratingDistribution, reviewsData] = await Promise.all([
+    getProductRatingDistribution(store.id, product.id),
+    getApprovedProductReviews(store.id, product.id, { limit: 10 }),
+  ]);
+
+  // Generate safe JSON-LD structured data
+  const { generateProductJsonLd, safeJsonLdStringify } = await import(
+    "@/modules/marketing/seo/json-ld"
+  );
+  const jsonLdData = generateProductJsonLd({
+    name: product.title,
+    description: product.description || product.shortDescription,
+    sku: product.sku,
+    brand: product.brand,
+    images: images.map((img) => img.imageUrl),
+    pricePaise: product.basePrice,
+    inStock: true,
+    domain,
+    productSlug: product.slug,
+    ratingDistribution,
+    recentReviews: reviewsData.reviews,
+  });
+
   return (
-    <ProductDetailView
-      product={product}
-      variants={variants}
-      images={images}
-      categoryName={categoryName}
-      storeName={store.name}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(jsonLdData) }}
+      />
+      <ProductDetailView
+        product={product}
+        variants={variants}
+        images={images}
+        categoryName={categoryName}
+        storeName={store.name}
+        domain={domain}
+        whatsappOrderEnabled={resolution.settings?.whatsappOrderEnabled ?? false}
+        whatsappOrderPhone={resolution.settings?.whatsappOrderPhone ?? ""}
+        ratingDistribution={ratingDistribution}
+        initialReviews={reviewsData.reviews}
+      />
+    </>
   );
 }

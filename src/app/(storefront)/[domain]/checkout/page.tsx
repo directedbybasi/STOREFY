@@ -12,6 +12,7 @@ interface CheckoutPageProps {
 export const metadata: Metadata = {
   title: "Secure Checkout — STOREFY",
   description: "Complete your purchase securely with our protected checkout.",
+  robots: { index: false, follow: false },
 };
 
 export default async function StorefrontCheckoutPage({ params }: CheckoutPageProps) {

@@ -9,6 +9,7 @@ import type { AuthorizedStoreItem } from "@/components/dashboard/can";
 export const metadata = {
   title: "Merchant Dashboard — STOREFY",
   description: "Manage your online stores, catalog, orders, team, and settings.",
+  robots: { index: false, follow: false },
 };
 
 export default async function DashboardLayout({

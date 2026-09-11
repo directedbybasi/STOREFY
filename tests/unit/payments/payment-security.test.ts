@@ -28,8 +28,8 @@ describe("Phase 10 — Payment Security & High-Risk Failure Modes", () => {
 
   // HIGH-RISK TEST 2: Wrong Amount Detection
   it("HIGH-RISK TEST 2: detects and rejects payment amount mismatch", async () => {
-    const orderTotalPaise = 150000; // ₹1,500.00
-    const tamperedAmountPaise = 1000; // ₹10.00 (tampered by malicious user)
+    const orderTotalPaise: number = 150000; // ₹1,500.00
+    const tamperedAmountPaise: number = 1000; // ₹10.00 (tampered by malicious user)
 
     // Verify logic detects mismatch
     const isMismatch = orderTotalPaise !== tamperedAmountPaise;

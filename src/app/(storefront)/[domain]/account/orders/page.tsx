@@ -13,6 +13,7 @@ interface CustomerOrdersPageProps {
 export const metadata = {
   title: "My Orders & Tracking — STOREFY",
   description: "Track shipments, download GST invoices, and view order history.",
+  robots: { index: false, follow: false },
 };
 
 export default async function CustomerOrdersPage({ params }: CustomerOrdersPageProps) {

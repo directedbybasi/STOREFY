@@ -12,6 +12,8 @@ import {
   ArrowRight,
   ShoppingBag,
   RefreshCw,
+  Tag,
+  X,
 } from "lucide-react";
 import type { CheckoutSessionDTO } from "@/modules/checkout/service";
 import {
@@ -27,6 +29,10 @@ import {
   initiateStorefrontPaymentAction,
   verifyStorefrontPaymentAction,
 } from "@/modules/payments/actions";
+import {
+  applyCouponToCheckoutAction,
+  removeCouponFromCheckoutAction,
+} from "@/modules/marketing/coupons/actions";
 import type { OrderDetailDTO } from "@/modules/orders/types";
 
 interface CheckoutFlowProps {
@@ -94,6 +100,71 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
   const [selectedPayment, setSelectedPayment] = useState<"COD" | "ONLINE">(
     session.paymentMethod || (session.isCodAvailable ? "COD" : "ONLINE")
   );
+
+  // Coupon states & handlers
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  const handleApplyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCodeInput.trim()) return;
+    try {
+      setIsApplyingCoupon(true);
+      setCouponError(null);
+      const res = await applyCouponToCheckoutAction(
+        domain,
+        session.id,
+        session.sessionToken,
+        couponCodeInput.trim()
+      );
+      if (res.success) {
+        setAppliedCoupon(couponCodeInput.trim().toUpperCase());
+        setCouponCodeInput("");
+        setSession((prev) => ({
+          ...prev,
+          discountPaise: res.discountPaise || 0,
+          discountFormatted: res.discountFormatted || "₹0",
+          totalPaise: res.totalPaise || prev.totalPaise,
+          totalFormatted: res.totalFormatted || prev.totalFormatted,
+        }));
+      } else {
+        setCouponError(res.error || "Failed to apply coupon.");
+      }
+    } catch {
+      setCouponError("Network error while applying coupon.");
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    try {
+      setIsApplyingCoupon(true);
+      setCouponError(null);
+      const res = await removeCouponFromCheckoutAction(
+        domain,
+        session.id,
+        session.sessionToken
+      );
+      if (res.success) {
+        setAppliedCoupon(null);
+        setSession((prev) => {
+          const restoredTotal = prev.subtotalPaise + prev.shippingCostPaise + prev.taxPaise;
+          return {
+            ...prev,
+            discountPaise: 0,
+            discountFormatted: "₹0",
+            totalPaise: restoredTotal,
+            totalFormatted: `₹${(restoredTotal / 100).toLocaleString("en-IN")}`,
+          };
+        });
+      }
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
 
   // Handlers for steps
   const handleSaveContact = async (e: React.FormEvent) => {
@@ -944,6 +1015,49 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Coupon Code Section */}
+            <div className="pt-2 border-t border-slate-100">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                  <div className="flex items-center gap-2 text-emerald-800 font-semibold">
+                    <Tag className="h-3.5 w-3.5" />
+                    <span>Coupon: {appliedCoupon}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    disabled={isApplyingCoupon}
+                    className="text-emerald-700 hover:text-emerald-950 p-1"
+                    title="Remove coupon"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyCoupon} className="space-y-1.5">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Promo / Coupon code"
+                      value={couponCodeInput}
+                      onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-900 uppercase font-mono"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isApplyingCoupon || !couponCodeInput.trim()}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition disabled:opacity-40"
+                    >
+                      {isApplyingCoupon ? "..." : "Apply"}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p className="text-[11px] text-rose-600 font-medium">{couponError}</p>
+                  )}
+                </form>
+              )}
             </div>
 
             {/* Authoritative Financial Breakdown */}

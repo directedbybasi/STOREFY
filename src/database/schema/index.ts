@@ -23,3 +23,8 @@ export * from "./checkout";
 export * from "./orders";
 export * from "./payments";
 export * from "./shipping";
+export * from "./marketing";
+export * from "./reviews";
+export * from "./analytics";
+export * from "./dropshipping";
+export * from "./marketplaces";

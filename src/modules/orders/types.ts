@@ -187,6 +187,8 @@ export interface OrderDetailDTO {
   subtotalFormatted: string;
   discountPaise: number;
   discountFormatted: string;
+  couponCode?: string | null;
+  couponSnapshot?: import("@/database/schema").CouponSnapshot | null;
   taxPaise: number;
   taxFormatted: string;
   shippingPaise: number;

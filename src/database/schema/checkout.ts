@@ -58,6 +58,8 @@ export const checkoutSessions = pgTable(
     paymentStatus: varchar("payment_status", { length: 50 }).notNull().default("NOT_STARTED"), // NOT_STARTED, PENDING, READY_FOR_PAYMENT
     subtotalAmount: bigint("subtotal_amount", { mode: "number" }).notNull().default(0), // in Paise
     discountAmount: bigint("discount_amount", { mode: "number" }).notNull().default(0), // in Paise
+    couponCode: varchar("coupon_code", { length: 100 }),
+    couponSnapshot: jsonb("coupon_snapshot").$type<import("./marketing").CouponSnapshot | null>(),
     taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0), // in Paise
     totalAmount: bigint("total_amount", { mode: "number" }).notNull().default(0), // in Paise
     currency: varchar("currency", { length: 3 }).notNull().default("INR"),
