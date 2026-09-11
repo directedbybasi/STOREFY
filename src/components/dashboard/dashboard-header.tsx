@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { StoreSwitcher } from "./store-switcher";
 import { UserMenu } from "./user-menu";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onOpenMobileSidebar }: DashboardHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Generate dynamic breadcrumbs
   const segments = pathname.split("/").filter(Boolean);
@@ -43,6 +44,9 @@ export function DashboardHeader({ onOpenMobileSidebar }: DashboardHeaderProps) {
         <nav aria-label="Breadcrumb" className="hidden items-center gap-1.5 text-xs sm:flex">
           <Link
             href="/dashboard"
+            prefetch={true}
+            onPointerEnter={() => router.prefetch("/dashboard")}
+            onPointerDown={() => router.prefetch("/dashboard")}
             className="text-slate-500 transition-colors hover:text-slate-300"
           >
             <Home className="h-3.5 w-3.5" />
@@ -56,6 +60,9 @@ export function DashboardHeader({ onOpenMobileSidebar }: DashboardHeaderProps) {
               ) : (
                 <Link
                   href={crumb.href}
+                  prefetch={true}
+                  onPointerEnter={() => router.prefetch(crumb.href)}
+                  onPointerDown={() => router.prefetch(crumb.href)}
                   className="text-slate-400 transition-colors hover:text-slate-200"
                 >
                   {crumb.label}

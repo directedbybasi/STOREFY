@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardProvider, type AuthorizedStoreItem, type DashboardTenantContext } from "./can";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardHeader } from "./dashboard-header";
@@ -17,8 +18,42 @@ export function DashboardShell({
   authorizedStores,
   children,
 }: DashboardShellProps) {
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  // Proactively pre-warm primary dashboard routes in client memory during idle time
+  useEffect(() => {
+    const primaryRoutes = [
+      "/dashboard",
+      "/dashboard/products",
+      "/dashboard/orders",
+      "/dashboard/inventory",
+      "/dashboard/customers",
+      "/dashboard/analytics",
+      "/dashboard/settings",
+      "/dashboard/ai",
+      "/dashboard/settings/payments",
+      "/dashboard/settings/shipping",
+    ];
+
+    const warmRoutes = () => {
+      primaryRoutes.forEach((route, index) => {
+        // Stagger prefetch requests slightly to allow idle execution
+        setTimeout(() => {
+          router.prefetch(route);
+        }, index * 80);
+      });
+    };
+
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(() => warmRoutes());
+      } else {
+        setTimeout(warmRoutes, 200);
+      }
+    }
+  }, [router]);
 
   return (
     <DashboardProvider value={{ tenant, authorizedStores }}>

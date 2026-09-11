@@ -283,7 +283,7 @@ export function ProductListClient({
             asChild
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium shadow-sm"
           >
-            <Link href="/dashboard/products/new">
+            <Link href="/dashboard/products/new" prefetch={true}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Add Product
             </Link>
@@ -511,7 +511,7 @@ export function ProductListClient({
                       asChild
                       className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
                     >
-                      <Link href="/dashboard/products/new">Add Product</Link>
+                      <Link href="/dashboard/products/new" prefetch={true}>Add Product</Link>
                     </Button>
                   </td>
                 </tr>
@@ -552,6 +552,7 @@ export function ProductListClient({
                       <td className="py-3 px-4">
                         <Link
                           href={`/dashboard/products/${product.id}`}
+                          prefetch={true}
                           className="font-medium text-slate-100 hover:text-indigo-400 transition"
                         >
                           {product.title}

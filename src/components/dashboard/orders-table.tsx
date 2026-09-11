@@ -154,6 +154,7 @@ export function OrdersTable({ initialOrders, total }: OrdersTableProps) {
                   <td className="py-3.5 px-4 font-mono font-semibold text-white">
                     <Link
                       href={`/dashboard/orders/${order.id}`}
+                      prefetch={true}
                       className="hover:text-indigo-400 hover:underline inline-flex items-center gap-1.5"
                     >
                       {order.orderNumber}
@@ -185,7 +186,7 @@ export function OrdersTable({ initialOrders, total }: OrdersTableProps) {
                       asChild
                       className="h-7 px-2.5 text-[11px] border-slate-700 bg-slate-800/60 hover:bg-slate-700 text-slate-200"
                     >
-                      <Link href={`/dashboard/orders/${order.id}`}>
+                      <Link href={`/dashboard/orders/${order.id}`} prefetch={true}>
                         <Eye className="h-3 w-3 mr-1" />
                         View
                       </Link>

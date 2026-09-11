@@ -53,7 +53,7 @@ export default async function OrdersDashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild className="h-8 border-slate-700 text-xs text-slate-300">
-            <Link href="/dashboard/returns">
+            <Link href="/dashboard/returns" prefetch={true}>
               <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-amber-400" />
               Returns Portal
             </Link>

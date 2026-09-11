@@ -146,7 +146,7 @@ export default async function DashboardPage() {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild className="h-8 border-slate-700 bg-slate-800 text-xs text-slate-200 hover:bg-slate-700">
-            <Link href="/dashboard/settings">
+            <Link href="/dashboard/settings" prefetch={true}>
               <Settings className="mr-1.5 h-3.5 w-3.5" />
               Settings
             </Link>
@@ -291,7 +291,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-emerald-400 hover:text-emerald-300">
-                  <Link href="/dashboard/settings/domains">
+                  <Link href="/dashboard/settings/domains" prefetch={true}>
                     Manage
                     <ArrowUpRight className="ml-1 h-3 w-3" />
                   </Link>
@@ -316,7 +316,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-emerald-400 hover:text-emerald-300">
-                  <Link href="/dashboard/settings">
+                  <Link href="/dashboard/settings" prefetch={true}>
                     Configure
                     <ArrowUpRight className="ml-1 h-3 w-3" />
                   </Link>
@@ -341,7 +341,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-emerald-400 hover:text-emerald-300">
-                  <Link href="/dashboard/settings">
+                  <Link href="/dashboard/settings" prefetch={true}>
                     Set Phone
                     <ArrowUpRight className="ml-1 h-3 w-3" />
                   </Link>
@@ -366,7 +366,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-emerald-400 hover:text-emerald-300">
-                  <Link href="/dashboard/settings/staff">
+                  <Link href="/dashboard/settings/staff" prefetch={true}>
                     Invite
                     <ArrowUpRight className="ml-1 h-3 w-3" />
                   </Link>
@@ -379,6 +379,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Link
               href="/dashboard/settings"
+              prefetch={true}
               className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-center transition-all hover:border-slate-700 hover:bg-slate-850"
             >
               <Settings className="h-5 w-5 text-emerald-400 mb-2" />
@@ -388,6 +389,7 @@ export default async function DashboardPage() {
 
             <Link
               href="/dashboard/settings/domains"
+              prefetch={true}
               className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-center transition-all hover:border-slate-700 hover:bg-slate-850"
             >
               <Globe className="h-5 w-5 text-indigo-400 mb-2" />
@@ -397,6 +399,7 @@ export default async function DashboardPage() {
 
             <Link
               href="/dashboard/settings/staff"
+              prefetch={true}
               className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-center transition-all hover:border-slate-700 hover:bg-slate-850"
             >
               <UserPlus className="h-5 w-5 text-blue-400 mb-2" />

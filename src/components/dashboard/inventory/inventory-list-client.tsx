@@ -507,7 +507,7 @@ export function InventoryListClient({ data }: InventoryListClientProps) {
                             asChild
                             title="View Ledger History"
                           >
-                            <Link href={`/dashboard/inventory/${item.variantId}`}>
+                            <Link href={`/dashboard/inventory/${item.variantId}`} prefetch={true}>
                               <History className="h-3.5 w-3.5" />
                             </Link>
                           </Button>

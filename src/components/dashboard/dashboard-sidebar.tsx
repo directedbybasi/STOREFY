@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useDashboard } from "./can";
 import { cn } from "@/lib/utils";
 import {
@@ -348,6 +348,7 @@ export function DashboardSidebar({
   className,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { tenant } = useDashboard();
 
   return (
@@ -362,6 +363,10 @@ export function DashboardSidebar({
       <div className="flex h-16 items-center justify-between border-b border-slate-800/80 px-4">
         <Link
           href="/dashboard"
+          prefetch={true}
+          onPointerEnter={() => router.prefetch("/dashboard")}
+          onPointerDown={() => router.prefetch("/dashboard")}
+          onFocus={() => router.prefetch("/dashboard")}
           className="flex items-center gap-2.5 overflow-hidden font-black tracking-tight text-white"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20">
@@ -428,7 +433,10 @@ export function DashboardSidebar({
                     <Link
                       key={item.href}
                       href={item.href}
-                      prefetch={isPrimary ? true : undefined}
+                      prefetch={true}
+                      onPointerEnter={() => router.prefetch(item.href)}
+                      onPointerDown={() => router.prefetch(item.href)}
+                      onFocus={() => router.prefetch(item.href)}
                       onClick={onItemClick}
                       title={collapsed ? item.title : undefined}
                       className={cn(
