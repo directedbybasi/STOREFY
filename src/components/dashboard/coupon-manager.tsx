@@ -8,19 +8,24 @@ import {
   Plus,
   Search,
   CheckCircle2,
-  XCircle,
-  Clock,
-  ArrowUpDown,
-  Filter,
   AlertCircle,
-  Copy,
-  Percent,
-  IndianRupee,
-  Gift,
-  Truck,
+  X,
 } from "lucide-react";
 import { createCouponAction, toggleCouponStatusAction } from "@/modules/marketing/coupons/actions";
 import type { CreateCouponInput } from "@/modules/marketing/coupons/validation";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface CouponManagerProps {
   initialCoupons: Coupon[];
@@ -39,7 +44,7 @@ export function CouponManager({ initialCoupons, storeCurrency }: CouponManagerPr
   const [formData, setFormData] = useState({
     code: "",
     type: "PERCENTAGE" as "PERCENTAGE" | "FIXED_AMOUNT" | "BOGO" | "FREE_SHIPPING",
-    value: 10, // Percentage or Rupees
+    value: 10,
     minSpendRupees: 0,
     maxDiscountRupees: 0,
     usageLimit: "",
@@ -56,7 +61,6 @@ export function CouponManager({ initialCoupons, storeCurrency }: CouponManagerPr
       setIsSubmitting(true);
       setFeedback(null);
 
-      // Convert rupees to paise for money fields
       const valuePaise = formData.type === "FIXED_AMOUNT" ? Math.round(formData.value * 100) : formData.value;
       const minSpendPaise = Math.round((Number(formData.minSpendRupees) || 0) * 100);
       const maxDiscountPaise = formData.maxDiscountRupees ? Math.round(Number(formData.maxDiscountRupees) * 100) : null;
@@ -81,7 +85,7 @@ export function CouponManager({ initialCoupons, storeCurrency }: CouponManagerPr
       const res = await createCouponAction(input);
       if (res.success && res.coupon) {
         setCouponsList([res.coupon, ...couponsList]);
-        setFeedback({ type: "success", message: `Coupon '${res.coupon.code}' created successfully!` });
+        setFeedback({ type: "success", message: `Coupon '${res.coupon.code}' created successfully.` });
         setIsCreateOpen(false);
         setFormData({
           code: "",
@@ -133,323 +137,336 @@ export function CouponManager({ initialCoupons, storeCurrency }: CouponManagerPr
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-1 max-w-md">
           <div className="relative flex-1">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search coupons by code..."
+            <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search coupons by code or notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="pl-8 text-xs"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
-            className="px-3 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none"
+            className="h-8 px-2.5 rounded-lg border border-border bg-card text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active Only</option>
+            <option value="ALL">All statuses</option>
+            <option value="ACTIVE">Active only</option>
             <option value="INACTIVE">Inactive</option>
           </select>
         </div>
 
-        <button
-          type="button"
+        <Button
+          size="sm"
           onClick={() => setIsCreateOpen(!isCreateOpen)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition"
+          variant={isCreateOpen ? "outline" : "default"}
         >
-          <Plus className="h-4 w-4" />
-          <span>{isCreateOpen ? "Close Form" : "Create Coupon"}</span>
-        </button>
+          {isCreateOpen ? (
+            <>
+              <X className="h-3.5 w-3.5 mr-1.5" />
+              Close Form
+            </>
+          ) : (
+            <>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Create Coupon
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Notification Banner */}
       {feedback && (
         <div
-          className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+          className={`p-3 rounded-lg border text-xs flex items-center justify-between ${
             feedback.type === "success"
-              ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
-              : "bg-rose-950/40 border-rose-500/30 text-rose-300"
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+              : "bg-destructive/10 border-destructive/20 text-destructive"
           }`}
         >
           <div className="flex items-center gap-2">
             {feedback.type === "success" ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+              <AlertCircle className="h-4 w-4 shrink-0" />
             )}
             <span>{feedback.message}</span>
           </div>
           <button
             type="button"
             onClick={() => setFeedback(null)}
-            className="text-slate-400 hover:text-white text-xs"
+            className="text-muted-foreground hover:text-foreground text-xs"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Create Coupon Collapsible Form */}
+      {/* Create Coupon Card */}
       {isCreateOpen && (
-        <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-md space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Tag className="h-4 w-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-white">Create New Promotional Coupon</h2>
-          </div>
+        <Card>
+          <CardHeader className="pb-3 border-b border-border">
+            <CardTitle className="text-sm">Create New Promotional Coupon</CardTitle>
+            <CardDescription>
+              Configure code, discount structure, minimum spend, and redemption limits.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Coupon Code *</label>
+                  <Input
+                    required
+                    placeholder="e.g. FESTIVE20"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                    className="font-mono uppercase text-xs"
+                  />
+                </div>
 
-          <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Coupon Code *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. SUMMER25"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono uppercase focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Discount Type *</label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        type: e.target.value as "PERCENTAGE" | "FIXED_AMOUNT" | "BOGO" | "FREE_SHIPPING",
+                      })
+                    }
+                    className="w-full h-8 px-2.5 rounded-lg border border-border bg-card text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="PERCENTAGE">Percentage (%) Off</option>
+                    <option value="FIXED_AMOUNT">Flat Amount (₹) Off</option>
+                    <option value="BOGO">Buy One Get One (BOGO)</option>
+                    <option value="FREE_SHIPPING">Free Shipping</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">
+                    {formData.type === "PERCENTAGE"
+                      ? "Percentage Value (%)"
+                      : formData.type === "FIXED_AMOUNT"
+                      ? "Discount Value (₹)"
+                      : "Value"}
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    disabled={formData.type === "FREE_SHIPPING" || formData.type === "BOGO"}
+                    value={formData.value}
+                    onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Min Spend Threshold (₹)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 999"
+                    value={formData.minSpendRupees || ""}
+                    onChange={(e) => setFormData({ ...formData, minSpendRupees: Number(e.target.value) })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Max Discount Cap (₹, Optional)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 500"
+                    disabled={formData.type !== "PERCENTAGE"}
+                    value={formData.maxDiscountRupees || ""}
+                    onChange={(e) => setFormData({ ...formData, maxDiscountRupees: Number(e.target.value) })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Usage Limit (Blank = Unlimited)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 100"
+                    value={formData.usageLimit}
+                    onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Per-Customer Limit</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={formData.perCustomerLimit}
+                    onChange={(e) => setFormData({ ...formData, perCustomerLimit: Number(e.target.value) })}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">Start Date</label>
+                  <Input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-foreground">End Date</label>
+                  <Input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-foreground">Internal Notes (Optional)</label>
+                <Input
+                  placeholder="e.g. Launch campaign promotion"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="text-xs"
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Discount Type *</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as "PERCENTAGE" | "FIXED_AMOUNT" | "BOGO" | "FREE_SHIPPING" })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreateOpen(false)}
                 >
-                  <option value="PERCENTAGE">Percentage (%) Off</option>
-                  <option value="FIXED_AMOUNT">Flat Amount (₹) Off</option>
-                  <option value="BOGO">Buy One Get One (BOGO)</option>
-                  <option value="FREE_SHIPPING">Free Shipping</option>
-                </select>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmitting || !formData.code.trim()}
+                >
+                  {isSubmitting ? "Saving..." : "Save Coupon"}
+                </Button>
               </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  {formData.type === "PERCENTAGE"
-                    ? "Percentage Value (%)"
-                    : formData.type === "FIXED_AMOUNT"
-                    ? "Discount Value (₹)"
-                    : "Value"}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  disabled={formData.type === "FREE_SHIPPING" || formData.type === "BOGO"}
-                  value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-40"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Min Spend Threshold (₹)</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 999"
-                  value={formData.minSpendRupees || ""}
-                  onChange={(e) => setFormData({ ...formData, minSpendRupees: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Max Discount Cap (₹, Optional)</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 500"
-                  disabled={formData.type !== "PERCENTAGE"}
-                  value={formData.maxDiscountRupees || ""}
-                  onChange={(e) => setFormData({ ...formData, maxDiscountRupees: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-40"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Global Usage Limit (Blank = Unlimited)</label>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="e.g. 100"
-                  value={formData.usageLimit}
-                  onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Per-Customer Limit</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.perCustomerLimit}
-                  onChange={(e) => setFormData({ ...formData, perCustomerLimit: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Start Date (Optional)</label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">End Date (Optional)</label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Description (Internal Notes)</label>
-              <input
-                type="text"
-                placeholder="e.g. 10% off launch promo code"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(false)}
-                className="px-4 py-2 border border-slate-700 text-slate-300 rounded-xl hover:bg-slate-800 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || !formData.code.trim()}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-sm transition disabled:opacity-50"
-              >
-                {isSubmitting ? "Creating..." : "Save Coupon"}
-              </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Coupons Table */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[10px] tracking-wider">
-              <tr>
-                <th className="px-5 py-3">Code</th>
-                <th className="px-5 py-3">Type & Value</th>
-                <th className="px-5 py-3">Min Spend</th>
-                <th className="px-5 py-3">Usage</th>
-                <th className="px-5 py-3">Validity</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
-                    No coupons found matching your criteria.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((c) => {
-                  const isExpired = c.endDate && new Date(c.endDate) < new Date();
-                  return (
-                    <tr key={c.id} className="hover:bg-slate-800/40 transition">
-                      <td className="px-5 py-3.5">
-                        <div className="font-mono font-bold text-white flex items-center gap-1.5">
-                          <Tag className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>{c.code}</span>
-                        </div>
-                        {c.description && (
-                          <p className="text-[11px] text-slate-500 truncate max-w-xs">{c.description}</p>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="font-semibold text-white">
-                          {c.type === "PERCENTAGE" && `${c.value}% Off`}
-                          {c.type === "FIXED_AMOUNT" && `${formatPaiseToRupees(c.value)} Off`}
-                          {c.type === "BOGO" && "Buy 1 Get 1"}
-                          {c.type === "FREE_SHIPPING" && "Free Shipping"}
+      <Card className="p-0 overflow-hidden">
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No coupons found"
+            description="Create your first promotional discount code to incentivize customer checkouts."
+            action={{
+              label: "Create Coupon",
+              onClick: () => setIsCreateOpen(true),
+            }}
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Type & Value</TableHead>
+                <TableHead>Min Spend</TableHead>
+                <TableHead>Usage</TableHead>
+                <TableHead>Validity</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((c) => {
+                const isExpired = c.endDate && new Date(c.endDate) < new Date();
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 font-mono font-semibold text-foreground">
+                        <Tag className="h-3 w-3 text-primary" />
+                        <span>{c.code}</span>
+                      </div>
+                      {c.description && (
+                        <p className="text-[11px] text-muted-foreground truncate max-w-xs">{c.description}</p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium text-foreground">
+                        {c.type === "PERCENTAGE" && `${c.value}% Off`}
+                        {c.type === "FIXED_AMOUNT" && `${formatPaiseToRupees(c.value)} Off`}
+                        {c.type === "BOGO" && "Buy 1 Get 1"}
+                        {c.type === "FREE_SHIPPING" && "Free Shipping"}
+                      </span>
+                      {c.maxDiscountAmount && (
+                        <p className="text-[10px] text-muted-foreground font-tabular">
+                          Cap: {formatPaiseToRupees(c.maxDiscountAmount)}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-tabular">
+                      {c.minSpendAmount > 0 ? formatPaiseToRupees(c.minSpendAmount) : "None"}
+                    </TableCell>
+                    <TableCell className="font-tabular font-mono">
+                      {c.usageCount} / {c.usageLimit !== null ? c.usageLimit : "∞"}
+                    </TableCell>
+                    <TableCell className="text-[11px] font-tabular">
+                      {c.endDate ? (
+                        <span className={isExpired ? "text-destructive" : "text-muted-foreground"}>
+                          {isExpired ? "Expired: " : "Ends: "}
+                          {new Date(c.endDate).toLocaleDateString("en-IN", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
                         </span>
-                        {c.maxDiscountAmount && (
-                          <p className="text-[10px] text-slate-500">
-                            Cap: {formatPaiseToRupees(c.maxDiscountAmount)}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {c.minSpendAmount > 0 ? formatPaiseToRupees(c.minSpendAmount) : "None"}
-                      </td>
-                      <td className="px-5 py-3.5 font-mono">
-                        {c.usageCount} / {c.usageLimit !== null ? c.usageLimit : "∞"}
-                      </td>
-                      <td className="px-5 py-3.5 text-[11px]">
-                        {c.endDate ? (
-                          <span className={isExpired ? "text-rose-400" : "text-slate-400"}>
-                            {isExpired ? "Expired: " : "Ends: "}
-                            {new Date(c.endDate).toLocaleDateString("en-IN", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500">No expiration</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            c.isActive && !isExpired
-                              ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/40"
-                              : "bg-slate-800 text-slate-400 border border-slate-700"
-                          }`}
-                        >
-                          {c.isActive && !isExpired ? "Active" : isExpired ? "Expired" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(c)}
-                          className="text-xs text-slate-400 hover:text-white transition underline"
-                        >
-                          {c.isActive ? "Deactivate" : "Activate"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      ) : (
+                        <span className="text-muted-foreground">No expiration</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={c.isActive && !isExpired ? "success" : isExpired ? "error" : "neutral"}
+                        dot
+                      >
+                        {c.isActive && !isExpired ? "Active" : isExpired ? "Expired" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleToggleStatus(c)}
+                      >
+                        {c.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
     </div>
   );
 }

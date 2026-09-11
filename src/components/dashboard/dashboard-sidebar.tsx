@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -11,34 +10,23 @@ import {
   Package,
   ShoppingCart,
   Users,
-  BarChart3,
-  Megaphone,
-  Settings,
-  Globe,
-  UserCheck,
-  ShoppingBag,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  Palette,
-  Brush,
-  FolderTree,
-  Layers,
   Boxes,
-  CreditCard,
-  Truck,
-  Tag,
-  Star,
+  Megaphone,
+  BarChart3,
+  Globe,
   Store,
   Building2,
-  Wallet,
+  Truck,
+  ShoppingBag,
+  FileText,
   Sparkles,
   Bell,
-  History,
-  FileText,
   Code,
-  Database,
-  ShieldAlert,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -47,7 +35,6 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: string;
-  badge?: string;
 }
 
 interface NavGroup {
@@ -58,12 +45,13 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    groupName: "Main",
+    groupName: "COMMERCE",
     items: [
       {
-        title: "Overview",
-        href: "/dashboard",
-        icon: LayoutDashboard,
+        title: "Orders",
+        href: "/dashboard/orders",
+        icon: ShoppingCart,
+        permission: "orders:read",
       },
       {
         title: "Products",
@@ -72,29 +60,10 @@ const NAV_GROUPS: NavGroup[] = [
         permission: "catalog:read",
       },
       {
-        title: "Categories",
-        href: "/dashboard/products/categories",
-        icon: FolderTree,
-        permission: "catalog:read",
-      },
-      {
-        title: "Collections",
-        href: "/dashboard/products/collections",
-        icon: Layers,
-        permission: "catalog:read",
-      },
-      {
         title: "Inventory",
         href: "/dashboard/inventory",
         icon: Boxes,
         permission: "inventory:read",
-      },
-      {
-        title: "Orders",
-        href: "/dashboard/orders",
-        icon: ShoppingCart,
-        permission: "orders:read",
-        badge: "Phase 9",
       },
       {
         title: "Customers",
@@ -105,234 +74,104 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    groupName: "Sales Channels",
+    groupName: "GROWTH",
     items: [
-      {
-        title: "Themes",
-        href: "/dashboard/online-store/themes",
-        icon: Palette,
-        permission: "builder:read",
-      },
-      {
-        title: "Theme Customizer",
-        href: "/dashboard/online-store/themes/customizer",
-        icon: Brush,
-        permission: "builder:write",
-      },
-      {
-        title: "Point of Sale (POS)",
-        href: "/dashboard/pos",
-        icon: Store,
-        permission: "pos:read",
-        badge: "Phase 16",
-      },
-      {
-        title: "B2B Wholesale",
-        href: "/dashboard/b2b",
-        icon: Building2,
-        permission: "b2b:read",
-        badge: "Phase 16",
-      },
-      {
-        title: "Content & Blog",
-        href: "/dashboard/content",
-        icon: FileText,
-        permission: "content:read",
-        badge: "Phase 16",
-      },
-    ],
-  },
-  {
-    groupName: "Growth",
-    items: [
-      {
-        title: "Analytics",
-        href: "/dashboard/analytics",
-        icon: BarChart3,
-        permission: "analytics:view",
-        badge: "Phase 11",
-      },
       {
         title: "Marketing",
         href: "/dashboard/marketing",
         icon: Megaphone,
         permission: "marketing:read",
-        badge: "Phase 11",
       },
       {
-        title: "Coupons & Discounts",
-        href: "/dashboard/marketing/coupons",
-        icon: Tag,
-        permission: "marketing:read",
-      },
-      {
-        title: "Product Reviews",
-        href: "/dashboard/reviews",
-        icon: Star,
-        permission: "marketing:read",
+        title: "Analytics",
+        href: "/dashboard/analytics",
+        icon: BarChart3,
+        permission: "analytics:view",
       },
     ],
   },
   {
-    groupName: "Dropshipping",
+    groupName: "CHANNELS",
     items: [
       {
-        title: "Marketplace",
-        href: "/dashboard/dropshipping",
+        title: "Online Store",
+        href: "/dashboard/online-store/themes",
+        icon: Globe,
+        permission: "builder:read",
+      },
+      {
+        title: "POS",
+        href: "/dashboard/pos",
         icon: Store,
-        permission: "dropshipping:read",
-        badge: "Phase 12",
+        permission: "pos:read",
       },
       {
-        title: "Supplier Orders",
-        href: "/dashboard/dropshipping/orders",
-        icon: Truck,
-        permission: "dropshipping:orders",
-      },
-    ],
-  },
-  {
-    groupName: "Supplier Business",
-    capability: "SUPPLIER",
-    items: [
-      {
-        title: "Supplier Overview",
-        href: "/dashboard/supplier",
+        title: "B2B",
+        href: "/dashboard/b2b",
         icon: Building2,
+        permission: "b2b:read",
+      },
+      {
+        title: "Supplier",
+        href: "/dashboard/supplier",
+        icon: Truck,
         permission: "supplier:read",
-        badge: "Capability",
       },
       {
-        title: "Supplier Products",
-        href: "/dashboard/supplier/products",
-        icon: Package,
-        permission: "supplier:products",
-      },
-      {
-        title: "Fulfillment Orders",
-        href: "/dashboard/supplier/orders",
-        icon: ShoppingCart,
-        permission: "supplier:orders",
-      },
-      {
-        title: "Earnings & Payouts",
-        href: "/dashboard/supplier/earnings",
-        icon: Wallet,
-        permission: "supplier:finance",
-      },
-    ],
-  },
-  {
-    groupName: "Meesho Reselling",
-    items: [
-      {
-        title: "Meesho Overview",
+        title: "Meesho",
         href: "/dashboard/meesho",
         icon: ShoppingBag,
         permission: "marketplace:read",
-        badge: "Phase 13",
-      },
-      {
-        title: "Import Product",
-        href: "/dashboard/meesho/import",
-        icon: Sparkles,
-        permission: "marketplace:import",
-      },
-      {
-        title: "Imported Products",
-        href: "/dashboard/meesho/products",
-        icon: Package,
-        permission: "marketplace:read",
-      },
-      {
-        title: "Fulfillment Tasks",
-        href: "/dashboard/meesho/orders",
-        icon: Truck,
-        permission: "marketplace:orders",
       },
     ],
   },
   {
-    groupName: "AI Intelligence",
+    groupName: "CONTENT",
     items: [
       {
-        title: "AI Product Tools",
+        title: "Pages",
+        href: "/dashboard/content",
+        icon: FileText,
+        permission: "content:read",
+      },
+    ],
+  },
+  {
+    groupName: "TOOLS",
+    items: [
+      {
+        title: "AI Intelligence",
         href: "/dashboard/ai",
         icon: Sparkles,
         permission: "catalog:read",
-        badge: "Phase 14",
-      },
-    ],
-  },
-  {
-    groupName: "Store Operations",
-    items: [
-      {
-        title: "Store Settings",
-        href: "/dashboard/settings",
-        icon: Settings,
-        permission: "settings:read",
-      },
-      {
-        title: "Payment Gateways",
-        href: "/dashboard/settings/payments",
-        icon: CreditCard,
-        permission: "settings:read",
-        badge: "Phase 10",
-      },
-      {
-        title: "Shipping & Delivery",
-        href: "/dashboard/settings/shipping",
-        icon: Truck,
-        permission: "settings:read",
-        badge: "Phase 10",
-      },
-      {
-        title: "Custom Domains",
-        href: "/dashboard/settings/domains",
-        icon: Globe,
-        permission: "domains:manage",
-      },
-      {
-        title: "Staff & RBAC",
-        href: "/dashboard/settings/staff",
-        icon: UserCheck,
-        permission: "staff:read",
       },
       {
         title: "Notifications",
         href: "/dashboard/notifications",
         icon: Bell,
         permission: "dashboard:view",
-        badge: "Phase 15",
       },
+    ],
+  },
+  {
+    groupName: "DEVELOPER",
+    items: [
       {
-        title: "Audit Trail",
-        href: "/dashboard/settings/audit",
-        icon: History,
-        permission: "settings:manage",
-        badge: "Phase 15",
-      },
-      {
-        title: "Global Markets",
-        href: "/dashboard/settings/markets",
-        icon: Globe,
-        permission: "markets:read",
-        badge: "Phase 16",
-      },
-      {
-        title: "Developer & API",
+        title: "Developer",
         href: "/dashboard/settings/developer",
         icon: Code,
         permission: "developer:read",
-        badge: "Phase 16",
       },
+    ],
+  },
+  {
+    groupName: "SETTINGS",
+    items: [
       {
-        title: "Data Portability",
-        href: "/dashboard/settings/data",
-        icon: Database,
-        permission: "settings:manage",
-        badge: "Phase 16",
+        title: "Settings",
+        href: "/dashboard/settings",
+        icon: Settings,
+        permission: "settings:read",
       },
     ],
   },
@@ -356,7 +195,7 @@ export function DashboardSidebar({
   const { tenant } = useDashboard();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
-  // Clear pending optimistic route when destination pathname is mounted
+  // Clear pending optimistic state on path update
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
@@ -366,77 +205,119 @@ export function DashboardSidebar({
   const handleNavTrigger = (href: string, targetEl?: HTMLElement | null) => {
     if (targetEl) {
       document.querySelectorAll('aside a[data-active="true"]').forEach((el) => {
-        el.setAttribute('data-active', 'false');
-        el.removeAttribute('aria-current');
-        el.classList.remove('bg-emerald-500/10', 'text-emerald-400', 'font-semibold');
-        el.classList.add('text-slate-400');
+        el.setAttribute("data-active", "false");
+        el.removeAttribute("aria-current");
+        el.classList.remove("bg-accent", "text-foreground", "font-semibold");
+        el.classList.add("text-muted-foreground");
       });
-      targetEl.setAttribute('data-active', 'true');
-      targetEl.setAttribute('aria-current', 'page');
-      targetEl.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-semibold');
-      targetEl.classList.remove('text-slate-400');
+      targetEl.setAttribute("data-active", "true");
+      targetEl.setAttribute("aria-current", "page");
+      targetEl.classList.add("bg-accent", "text-foreground", "font-semibold");
+      targetEl.classList.remove("text-muted-foreground");
     }
     setPendingHref(href);
   };
 
+  const isOverviewActive = effectivePath === "/dashboard";
+
   return (
     <aside
       className={cn(
-        "flex flex-col border-r border-slate-800/80 bg-slate-950 text-slate-200 transition-all duration-300 select-none",
-        collapsed ? "w-16" : "w-64",
+        "flex flex-col border-r border-border bg-card text-card-foreground transition-all duration-180 select-none",
+        collapsed ? "w-16" : "w-60",
         className
       )}
     >
-      {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-800/80 px-4">
+      {/* Brand & Store Header */}
+      <div className="flex h-14 items-center justify-between border-b border-border px-3.5">
         <Link
           href="/dashboard"
           prefetch={true}
-          aria-current={effectivePath === "/dashboard" ? "page" : undefined}
-          data-active={effectivePath === "/dashboard" ? "true" : "false"}
           onPointerEnter={() => router.prefetch("/dashboard")}
           onPointerDown={(e) => {
             handleNavTrigger("/dashboard", e.currentTarget);
             router.prefetch("/dashboard");
           }}
-          onFocus={() => router.prefetch("/dashboard")}
           onClick={(e) => {
             handleNavTrigger("/dashboard", e.currentTarget);
             onItemClick?.();
           }}
-          className="flex items-center gap-2.5 overflow-hidden font-black tracking-tight text-white"
+          className="flex items-center gap-2 overflow-hidden text-sm font-bold tracking-tight text-foreground"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20">
-            <ShoppingBag className="h-4 w-4" />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground font-black text-xs">
+            S
           </div>
           {!collapsed && (
-            <span className="truncate text-lg">
-              STORE<span className="text-emerald-400">FY</span>
+            <span className="truncate tracking-tight font-semibold">
+              STOREFY
             </span>
           )}
         </Link>
 
-        {/* Collapse toggle (Desktop) */}
+        {/* Collapse toggle button */}
         <Button
           variant="ghost"
-          size="sm"
+          size="icon-sm"
           onClick={onToggleCollapse}
-          className="hidden h-7 w-7 p-0 text-slate-400 hover:bg-slate-800 hover:text-white md:flex"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="hidden h-6 w-6 p-0 text-muted-foreground hover:text-foreground md:flex"
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </Button>
       </div>
 
-      {/* Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      {/* Navigation Groups */}
+      <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4 custom-scrollbar">
+        {/* Top-level Overview Link */}
+        <div>
+          <Link
+            href="/dashboard"
+            prefetch={true}
+            aria-current={isOverviewActive ? "page" : undefined}
+            data-active={isOverviewActive ? "true" : "false"}
+            onPointerEnter={() => router.prefetch("/dashboard")}
+            onPointerDown={(e) => {
+              handleNavTrigger("/dashboard", e.currentTarget);
+              router.prefetch("/dashboard");
+            }}
+            onClick={(e) => {
+              handleNavTrigger("/dashboard", e.currentTarget);
+              onItemClick?.();
+            }}
+            title={collapsed ? "Overview" : undefined}
+            className={cn(
+              "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+              isOverviewActive
+                ? "bg-accent text-accent-foreground font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2.5px] before:rounded-r before:bg-primary"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+              collapsed && "justify-center px-0"
+            )}
+          >
+            <LayoutDashboard
+              className={cn(
+                "h-4 w-4 shrink-0 transition-colors",
+                isOverviewActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )}
+            />
+            {!collapsed && <span className="truncate">Overview</span>}
+          </Link>
+        </div>
+
+        {/* Categorized Groups */}
         {NAV_GROUPS.map((group) => {
-          // If group requires a capability (e.g. SUPPLIER), verify the merchant has that capability
+          // If group requires a capability (e.g. SUPPLIER), verify capability
           if (group.capability && !tenant.user.isPlatformAdmin && !tenant.capabilities?.has(group.capability)) {
             return null;
           }
 
-          // Filter items based on user permissions
+          // Filter items based on permissions
           const accessibleItems = group.items.filter((item) => {
+            // Channel supplier gating
+            if (item.href.startsWith("/dashboard/supplier")) {
+              if (!tenant.user.isPlatformAdmin && !tenant.capabilities?.has("SUPPLIER")) {
+                return false;
+              }
+            }
             if (!item.permission) return true;
             if (tenant.user.isPlatformAdmin || tenant.isOwner) return true;
             return tenant.permissions.has(item.permission);
@@ -445,19 +326,18 @@ export function DashboardSidebar({
           if (accessibleItems.length === 0) return null;
 
           return (
-            <div key={group.groupName} className="space-y-1">
+            <div key={group.groupName} className="space-y-0.5">
               {!collapsed && (
-                <h4 className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {group.groupName}
-                </h4>
+                </div>
               )}
 
               <nav className="space-y-0.5">
                 {accessibleItems.map((item) => {
                   const isActive =
-                    item.href === "/dashboard"
-                      ? effectivePath === "/dashboard"
-                      : effectivePath === item.href || effectivePath.startsWith(item.href + "/");
+                    effectivePath === item.href ||
+                    (item.href !== "/dashboard" && effectivePath.startsWith(item.href + "/"));
 
                   const Icon = item.icon;
 
@@ -473,39 +353,26 @@ export function DashboardSidebar({
                         handleNavTrigger(item.href, e.currentTarget);
                         router.prefetch(item.href);
                       }}
-                      onFocus={() => router.prefetch(item.href)}
                       onClick={(e) => {
                         handleNavTrigger(item.href, e.currentTarget);
                         onItemClick?.();
                       }}
                       title={collapsed ? item.title : undefined}
                       className={cn(
-                        "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors",
+                        "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                         isActive
-                          ? "bg-emerald-500/10 text-emerald-400 font-semibold"
-                          : "text-slate-400 hover:bg-slate-900 hover:text-slate-200",
+                          ? "bg-accent text-accent-foreground font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2.5px] before:rounded-r before:bg-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                         collapsed && "justify-center px-0"
                       )}
                     >
                       <Icon
                         className={cn(
                           "h-4 w-4 shrink-0 transition-colors",
-                          isActive
-                            ? "text-emerald-400"
-                            : "text-slate-500 group-hover:text-slate-300"
+                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                         )}
                       />
-
-                      {!collapsed && (
-                        <div className="flex flex-1 items-center justify-between">
-                          <span className="truncate">{item.title}</span>
-                          {item.badge && (
-                            <span className="rounded bg-slate-800/80 px-1.5 py-0.5 text-[9px] font-semibold text-slate-400">
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {!collapsed && <span className="truncate">{item.title}</span>}
                     </Link>
                   );
                 })}
@@ -515,43 +382,43 @@ export function DashboardSidebar({
         })}
       </div>
 
-      {/* Platform Admin Portal Link (Platform Admins only) */}
+      {/* Platform Admin Console Link (For Platform Admin Users) */}
       {!collapsed && tenant.user.isPlatformAdmin && (
-        <div className="border-t border-slate-800/80 p-3">
+        <div className="border-t border-border p-2.5">
           <Link
             href="/admin"
-            className="flex items-center justify-between rounded-lg border border-violet-500/30 bg-violet-950/30 p-2.5 text-xs text-violet-300 transition-colors hover:border-violet-500/50 hover:bg-violet-900/40"
+            className="flex items-center justify-between rounded-md border border-violet-500/20 bg-violet-500/5 p-2 text-xs text-violet-700 dark:text-violet-300 transition-colors hover:bg-violet-500/10"
           >
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-violet-400 shrink-0" />
+            <div className="flex items-center gap-2 min-w-0">
+              <Shield className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
               <div className="truncate">
-                <p className="font-semibold text-white text-[11px]">Platform Admin</p>
-                <p className="text-[10px] text-violet-400">Internal Operations</p>
+                <p className="font-semibold text-[11px] leading-tight text-foreground">Platform Admin</p>
+                <p className="text-[10px] text-muted-foreground">Storefy Operations</p>
               </div>
             </div>
-            <ChevronRight className="h-3.5 w-3.5 text-violet-400" />
+            <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
           </Link>
         </div>
       )}
 
-      {/* Footer / Storefront link */}
+      {/* Footer Storefront Link */}
       {!collapsed && tenant.store && (
-        <div className="border-t border-slate-800/80 p-3">
+        <div className="border-t border-border p-2.5">
           <a
             href={`https://${tenant.store.subdomain}.storefy.shop`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/60 p-2.5 text-xs text-slate-300 transition-colors hover:border-slate-700 hover:bg-slate-850"
+            className="flex items-center justify-between rounded-md border border-border bg-muted/20 p-2 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
           >
-            <div className="truncate">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <div className="truncate min-w-0">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                 Live Storefront
               </p>
-              <p className="truncate font-mono text-[11px] text-emerald-400">
+              <p className="truncate font-mono text-[10px] text-foreground font-medium">
                 {tenant.store.subdomain}.storefy.shop
               </p>
             </div>
-            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
           </a>
         </div>
       )}

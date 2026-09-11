@@ -3,19 +3,27 @@
 import React, { useState } from "react";
 import {
   Building2,
-  Users,
   Tag,
-  CheckCircle,
-  XCircle,
   Clock,
   Plus,
-  ArrowRight,
-  ShieldCheck,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function B2bPage() {
-  const [activeTab, setActiveTab] = useState<"companies" | "pricelists" | "approvals">("companies");
+  const [activeTab, setActiveTab] = useState<"companies" | "approvals" | "pricelists">("companies");
 
   const [companies] = useState([
     {
@@ -53,7 +61,7 @@ export default function B2bPage() {
       companyName: "Apex Retailers Ltd.",
       poNumber: "PO-2026-0901",
       itemsCount: 150,
-      totalAmountPaise: 14500000, // ₹1,45,000
+      totalAmountPaise: 14500000,
       paymentTerms: "NET_30",
       status: "SUBMITTED",
       submittedAt: "10 mins ago",
@@ -63,7 +71,7 @@ export default function B2bPage() {
       companyName: "Heritage Handicrafts Emporium",
       poNumber: "PO-HH-449",
       itemsCount: 40,
-      totalAmountPaise: 4800000, // ₹48,000
+      totalAmountPaise: 4800000,
       paymentTerms: "NET_15",
       status: "SUBMITTED",
       submittedAt: "2 hours ago",
@@ -82,200 +90,248 @@ export default function B2bPage() {
     );
   };
 
+  const pendingApprovalsCount = approvals.filter((a) => a.status === "SUBMITTED").length;
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between border-b pb-4 gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">B2B & Wholesale Commerce</h1>
-            <span className="text-xs bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded-full">
-              Phase 16 Wholesale
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage wholesale companies, custom price lists, and order approvals
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button className="flex items-center gap-1.5">
-            <Plus className="w-4 h-4" /> Add B2B Company
+    <div className="space-y-6">
+      <PageHeader
+        title="B2B & Wholesale Commerce"
+        description="Manage corporate accounts, wholesale tiers, volume pricing, and purchase order approvals."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "B2B Wholesale" },
+        ]}
+        actions={
+          <Button size="sm">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Add B2B Company
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Tabs */}
-      <div className="flex border-b space-x-6 text-sm font-medium">
+      {/* Segment Navigation */}
+      <div className="inline-flex items-center p-0.5 rounded-lg bg-muted/60 border border-border">
         <button
+          type="button"
           onClick={() => setActiveTab("companies")}
-          className={`pb-3 border-b-2 transition flex items-center gap-2 ${
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
             activeTab === "companies"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-foreground shadow-xs border border-border/60"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Building2 className="w-4 h-4" /> Companies ({companies.length})
+          <Building2 className="h-3.5 w-3.5" />
+          <span>Companies ({companies.length})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab("approvals")}
-          className={`pb-3 border-b-2 transition flex items-center gap-2 ${
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
             activeTab === "approvals"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-foreground shadow-xs border border-border/60"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Clock className="w-4 h-4" /> Order Approvals ({approvals.filter((a) => a.status === "SUBMITTED").length})
+          <Clock className="h-3.5 w-3.5" />
+          <span>Approvals ({pendingApprovalsCount})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab("pricelists")}
-          className={`pb-3 border-b-2 transition flex items-center gap-2 ${
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
             activeTab === "pricelists"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-card text-foreground shadow-xs border border-border/60"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Tag className="w-4 h-4" /> Price Lists (2)
+          <Tag className="h-3.5 w-3.5" />
+          <span>Price Lists (2)</span>
         </button>
       </div>
 
       {/* Tab: Companies */}
       {activeTab === "companies" && (
-        <div className="border rounded-xl bg-card overflow-hidden shadow-sm">
-          <div className="p-4 border-b bg-muted/30">
-            <h3 className="font-semibold text-sm">Registered Wholesale Companies</h3>
-          </div>
-          <div className="divide-y text-sm">
-            {companies.map((c) => (
-              <div key={c.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-base">{c.name}</span>
-                    <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
-                      {c.code}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Tax ID / GSTIN: {c.taxId}</p>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Payment Terms</p>
-                    <span className="font-semibold text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+        <Card className="p-0 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company</TableHead>
+                <TableHead>Tax ID / GSTIN</TableHead>
+                <TableHead>Terms</TableHead>
+                <TableHead>Credit Limit</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {companies.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>
+                    <div className="font-medium text-foreground text-xs">{c.name}</div>
+                    <span className="font-mono text-[10px] text-muted-foreground">{c.code}</span>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {c.taxId}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="font-mono text-[10px]">
                       {c.paymentTerms}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Credit Limit</p>
-                    <p className="font-bold">₹{(c.creditLimitPaise / 100).toLocaleString()}</p>
-                  </div>
-                  <span className="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-1 rounded">
-                    {c.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-tabular font-medium text-foreground">
+                    ₹{(c.creditLimitPaise / 100).toLocaleString("en-IN")}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="success" dot>
+                      {c.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="xs">
+                      Edit
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       {/* Tab: Order Approvals */}
       {activeTab === "approvals" && (
-        <div className="border rounded-xl bg-card overflow-hidden shadow-sm">
-          <div className="p-4 border-b bg-muted/30">
-            <h3 className="font-semibold text-sm">Pending Wholesale Purchase Orders</h3>
-          </div>
-          <div className="divide-y text-sm">
-            {approvals.map((o) => (
-              <div key={o.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold">{o.companyName}</span>
-                    <span className="text-xs font-mono text-muted-foreground">
-                      PO #{o.poNumber}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {o.itemsCount} units • Terms: {o.paymentTerms} • {o.submittedAt}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-base">
-                    ₹{(o.totalAmountPaise / 100).toLocaleString()}
-                  </span>
-                  {o.status === "SUBMITTED" ? (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => handleReject(o.id)}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" /> Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => handleApprove(o.id)}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Approve Order
-                      </Button>
-                    </div>
-                  ) : (
-                    <span
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+        <Card className="p-0 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>PO Number & Buyer</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Payment Terms</TableHead>
+                <TableHead>Total Amount</TableHead>
+                <TableHead>Submitted</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {approvals.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell>
+                    <div className="font-medium text-foreground text-xs">{o.companyName}</div>
+                    <span className="font-mono text-[10px] text-muted-foreground">{o.poNumber}</span>
+                  </TableCell>
+                  <TableCell className="font-tabular text-muted-foreground">
+                    {o.itemsCount} units
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="font-mono text-[10px]">
+                      {o.paymentTerms}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-tabular font-semibold text-foreground">
+                    ₹{(o.totalAmountPaise / 100).toLocaleString("en-IN")}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {o.submittedAt}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
                         o.status === "APPROVED"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
+                          ? "success"
+                          : o.status === "SUBMITTED"
+                          ? "warning"
+                          : "error"
+                      }
+                      dot
                     >
                       {o.status}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {o.status === "SUBMITTED" ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => handleReject(o.id)}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="xs"
+                          onClick={() => handleApprove(o.id)}
+                        >
+                          Approve
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Processed</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       {/* Tab: Price Lists */}
       {activeTab === "pricelists" && (
-        <div className="border rounded-xl bg-card p-6 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-base">Volume Tier Price Overrides</h3>
+              <h3 className="text-sm font-semibold text-foreground">Volume Tier Price Schedules</h3>
               <p className="text-xs text-muted-foreground">
-                Configured wholesale pricing applied automatically during bulk order calculation
+                Automatic tiered wholesale pricing applied during purchase order processing.
               </p>
             </div>
             <Button size="sm" variant="outline">
-              <Plus className="w-4 h-4 mr-1" /> New Price List
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> New Price List
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg bg-muted/20 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-bold">Apex Tier 1 Wholesale</span>
-                <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">PL-APEX-1</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Applies to Apex Retailers Ltd.</p>
-              <div className="text-xs pt-2 border-t space-y-1">
-                <p>• Silk Kurtas: 50+ units @ ₹1,799 (Retail: ₹2,499)</p>
-                <p>• Leather Wallets: 100+ units @ ₹899 (Retail: ₹1,299)</p>
-              </div>
-            </div>
 
-            <div className="p-4 border rounded-lg bg-muted/20 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-bold">Global Export Tier</span>
-                <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">PL-GLOB-EXP</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-foreground">Apex Tier 1 Wholesale</h4>
+                  <p className="text-[11px] text-muted-foreground">Assigned to: Apex Retailers Ltd.</p>
+                </div>
+                <Badge variant="secondary" className="font-mono text-[10px]">PL-APEX-1</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Applies to Overseas Accounts</p>
-              <div className="text-xs pt-2 border-t space-y-1">
-                <p>• Pashminas: 25+ units @ ₹2,200 (Retail: ₹3,499)</p>
-                <p>• Cotton Tees: 200+ units @ ₹450 (Retail: ₹799)</p>
+              <div className="text-xs pt-2 border-t border-border space-y-1.5 text-muted-foreground font-tabular">
+                <div className="flex justify-between">
+                  <span>Silk Kurtas (50+ units)</span>
+                  <span className="font-semibold text-foreground">₹1,799 (Retail: ₹2,499)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Leather Wallets (100+ units)</span>
+                  <span className="font-semibold text-foreground">₹899 (Retail: ₹1,299)</span>
+                </div>
               </div>
-            </div>
+            </Card>
+
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-foreground">Global Export Tier</h4>
+                  <p className="text-[11px] text-muted-foreground">Assigned to: Overseas Accounts</p>
+                </div>
+                <Badge variant="secondary" className="font-mono text-[10px]">PL-GLOB-EXP</Badge>
+              </div>
+              <div className="text-xs pt-2 border-t border-border space-y-1.5 text-muted-foreground font-tabular">
+                <div className="flex justify-between">
+                  <span>Pashminas (25+ units)</span>
+                  <span className="font-semibold text-foreground">₹2,200 (Retail: ₹3,499)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Cotton Tees (200+ units)</span>
+                  <span className="font-semibold text-foreground">₹450 (Retail: ₹799)</span>
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
       )}

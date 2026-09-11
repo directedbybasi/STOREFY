@@ -5,6 +5,7 @@ import { stores, storeSettings } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { SettingsForm } from "./settings-form";
 import type { StoreSettingsInput } from "@/modules/stores/validation";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata = {
   title: "Store Settings — STOREFY",
@@ -48,13 +49,14 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-slate-800/80 pb-4">
-        <h1 className="text-xl font-bold text-white">Store Settings</h1>
-        <p className="text-xs text-slate-400">
-          Manage identity, currency, payments, and WhatsApp automation for{" "}
-          <span className="font-semibold text-emerald-400">{ctx.store.name}</span>.
-        </p>
-      </div>
+      <PageHeader
+        title="Store Settings"
+        description={`Manage identity, currency, payments, and checkout preferences for ${ctx.store.name}.`}
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Settings" },
+        ]}
+      />
 
       <SettingsForm initialValues={initialValues} />
     </div>

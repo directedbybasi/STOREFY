@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,78 +40,80 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon-sm"
           disabled={isPending}
-          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-slate-200 hover:bg-slate-700 hover:text-white focus-visible:ring-emerald-500"
+          className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted/60 text-[11px] font-semibold text-foreground hover:bg-muted focus-visible:ring-1.5 focus-visible:ring-ring"
         >
-          {initials || <UserIcon className="h-4 w-4" />}
-          <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
+          {initials || <UserIcon className="h-3.5 w-3.5" />}
+          <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1.5 ring-background" />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56 p-1.5">
-        <DropdownMenuLabel className="space-y-1">
+      <DropdownMenuContent align="end" className="w-56 p-1.5 bg-popover border-border">
+        <DropdownMenuLabel className="space-y-1 p-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-white">{displayName}</span>
+            <span className="text-xs font-semibold text-foreground truncate">{displayName}</span>
             <Badge
-              variant="outline"
-              className="border-indigo-500/30 bg-indigo-950/40 text-[9px] font-semibold text-indigo-300"
+              variant="neutral"
+              className="text-[10px] px-1.5 py-0 font-medium"
             >
               {tenant.role.name}
             </Badge>
           </div>
-          <p className="truncate text-[11px] text-slate-400">{tenant.user.email}</p>
-          <div className="flex items-center gap-1 text-[10px] text-slate-500">
-            <ShieldCheck className="h-3 w-3 text-emerald-400" />
-            <span>{tenant.organization.name}</span>
+          <p className="truncate text-[11px] text-muted-foreground">{tenant.user.email}</p>
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/80 pt-0.5">
+            <ShieldCheck className="h-3 w-3 text-primary" />
+            <span className="truncate">{tenant.organization.name}</span>
           </div>
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild>
-          <Link
-            href="/dashboard/settings"
-            className="flex w-full items-center gap-2 text-xs text-slate-200"
-          >
-            <Settings className="h-3.5 w-3.5 text-slate-400" />
-            Store Settings
-          </Link>
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link
+              href="/dashboard/settings"
+              className="flex w-full items-center gap-2 text-xs text-foreground"
+            >
+              <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Store Settings</span>
+            </Link>
+          </DropdownMenuItem>
 
-        <DropdownMenuItem asChild>
-          <Link
-            href="/dashboard/settings/domains"
-            className="flex w-full items-center gap-2 text-xs text-slate-200"
-          >
-            <Globe className="h-3.5 w-3.5 text-slate-400" />
-            Custom Domains
-          </Link>
-        </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link
+              href="/dashboard/settings/domains"
+              className="flex w-full items-center gap-2 text-xs text-foreground"
+            >
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Custom Domains</span>
+            </Link>
+          </DropdownMenuItem>
 
-        <DropdownMenuItem asChild>
-          <Link
-            href="/dashboard/settings/staff"
-            className="flex w-full items-center gap-2 text-xs text-slate-200"
-          >
-            <Users className="h-3.5 w-3.5 text-slate-400" />
-            Staff & RBAC
-          </Link>
-        </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link
+              href="/dashboard/settings/staff"
+              className="flex w-full items-center gap-2 text-xs text-foreground"
+            >
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Staff & Permissions</span>
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
           onClick={handleSignOut}
           disabled={isPending}
-          className="flex cursor-pointer items-center gap-2 text-xs text-rose-400 focus:bg-rose-950/30 focus:text-rose-300"
+          className="flex w-full items-center gap-2 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-600 cursor-pointer"
         >
           {isPending ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <LogOut className="h-3.5 w-3.5" />
           )}
-          Sign Out
+          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -5,14 +5,13 @@ import { listMarketplaceOrderTasks } from "@/modules/marketplaces/orders/marketp
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   ShoppingBag,
   Package,
   TrendingUp,
   ArrowRight,
-  RefreshCw,
-  ExternalLink,
-  Layers,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -35,141 +34,117 @@ export default async function MeeshoDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-4">
-        <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-rose-400" />
-            Meesho Reselling
-          </h1>
-          <p className="text-xs text-slate-400">
-            Import, price, and manage Meesho marketplace products for {ctx.store.name}.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/meesho/import">
-            <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white text-xs">
-              <Sparkles className="h-3.5 w-3.5 mr-1" /> Import Product
+      <PageHeader
+        title="Meesho Reselling"
+        description={`Import, price, and synchronize catalog products from Meesho for ${ctx.store.name}.`}
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Meesho Reselling" },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/meesho/orders">
+                Fulfillment Tasks ({pendingTasks.length})
+              </Link>
             </Button>
-          </Link>
-          <Link href="/dashboard/meesho/orders">
-            <Button variant="outline" size="sm" className="text-xs border-slate-700 text-slate-300 hover:bg-slate-800">
-              Fulfillment Tasks ({pendingTasks.length})
+            <Button asChild size="sm">
+              <Link href="/dashboard/meesho/import">
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                Import Product
+              </Link>
             </Button>
-          </Link>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-rose-950/40 to-slate-900 border-rose-500/20">
-          <CardContent className="pt-5 pb-4 px-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-rose-400">Imported Products</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{importedProducts.length}</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Active in store catalog</p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400">
-                <Package className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-amber-950/40 to-slate-900 border-amber-500/20">
-          <CardContent className="pt-5 pb-4 px-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-amber-400">Pending Tasks</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{pendingTasks.length}</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Awaiting Meesho purchase</p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
-                <ShoppingBag className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-emerald-950/40 to-slate-900 border-emerald-500/20">
-          <CardContent className="pt-5 pb-4 px-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-emerald-400">Total Potential Profit</p>
-                <h3 className="text-2xl font-bold text-white mt-1 font-mono">
-                  {formatPaiseToRupees(totalMarginPaise)}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Across imported catalog</p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          label="Imported Products"
+          value={importedProducts.length}
+          helpText="Active in store catalog"
+          icon={<Package className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Pending Tasks"
+          value={pendingTasks.length}
+          helpText="Awaiting order fulfillment"
+          icon={<ShoppingBag className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Potential Profit"
+          value={formatPaiseToRupees(totalMarginPaise)}
+          helpText="Calculated from catalog markup"
+          icon={<TrendingUp className="h-3.5 w-3.5" />}
+        />
       </div>
 
       {/* Quick Actions & Recent Imports */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-slate-800 bg-slate-900/60">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white flex items-center justify-between">
-              <span>Quick Product Import</span>
-              <Sparkles className="h-4 w-4 text-rose-400" />
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              Paste a Meesho product URL or product code to fetch details, customize retail markup, and import to your store.
-            </CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="flex flex-col justify-between">
+          <CardHeader className="pb-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm">Quick Product Import</CardTitle>
+                <CardDescription>
+                  Paste a Meesho product URL or code to import details with automatic retail markup.
+                </CardDescription>
+              </div>
+              <Badge variant="secondary" dot>Meesho Sync</Badge>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-slate-950/60 border border-slate-800 p-4 space-y-2">
-              <p className="text-xs text-slate-300 font-medium">Supported Formats:</p>
-              <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+          <CardContent className="pt-4 space-y-4">
+            <div className="rounded-lg bg-muted/40 border border-border/70 p-3 space-y-1.5 text-xs">
+              <p className="font-medium text-foreground">Supported Formats:</p>
+              <ul className="text-muted-foreground space-y-1 list-disc list-inside text-[11px]">
                 <li>https://www.meesho.com/s/p/3b2a1</li>
                 <li>https://meesho.com/product-title/p/123456</li>
-                <li>Direct product code: 3b2a1, 123456, 789xyz</li>
+                <li>Direct product code: 3b2a1, 123456</li>
               </ul>
             </div>
-            <Link href="/dashboard/meesho/import" className="block">
-              <Button className="w-full bg-rose-600 hover:bg-rose-500 text-white text-xs">
-                Launch Import Tool <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </Link>
+            <Button asChild size="sm" className="w-full">
+              <Link href="/dashboard/meesho/import">
+                <span>Launch Import Tool</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-800 bg-slate-900/60">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white flex items-center justify-between">
-              <span>Imported Catalog Preview</span>
-              <Link href="/dashboard/meesho/products" className="text-xs text-rose-400 hover:underline">
-                View all ({importedProducts.length})
-              </Link>
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              Recently imported Meesho products and their selling margins.
-            </CardDescription>
+        <Card className="flex flex-col justify-between">
+          <CardHeader className="pb-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm">Imported Catalog</CardTitle>
+                <CardDescription>Recently synchronized marketplace items.</CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="xs">
+                <Link href="/dashboard/meesho/products">
+                  View all ({importedProducts.length})
+                </Link>
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {importedProducts.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-xs">
-                No Meesho products imported yet. Use the import tool to get started.
+              <div className="text-center py-8 text-muted-foreground text-xs">
+                No Meesho products imported yet.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {importedProducts.slice(0, 4).map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/80 text-xs"
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/60 text-xs"
                   >
                     <div className="min-w-0 pr-2">
-                      <p className="font-medium text-white truncate">{p.title}</p>
-                      <p className="text-[11px] text-slate-500 font-mono">
+                      <p className="font-medium text-foreground truncate">{p.title}</p>
+                      <p className="text-[10px] text-muted-foreground font-tabular font-mono">
                         Cost: {formatPaiseToRupees(p.sourceCostPaise)} | Sell: {formatPaiseToRupees(p.retailPricePaise)}
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 text-[10px] shrink-0 font-mono">
+                    <Badge variant="success" dot className="font-tabular text-[10px] shrink-0">
                       +{formatPaiseToRupees(p.estimatedProfitPaise)} ({p.marginPercent}%)
                     </Badge>
                   </div>

@@ -3,13 +3,26 @@ import { requirePlatformAdmin } from "@/core/tenant/rbac";
 import { db } from "@/database/client";
 import { organizations, stores, users } from "@/database/schema";
 import { suppliers } from "@/database/schema/dropshipping";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Store, Truck, Users as UsersIcon, ShieldAlert, CheckCircle2, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import {
+  Building2,
+  Store,
+  Truck,
+  Users as UsersIcon,
+  ShieldAlert,
+  Clock,
+  CheckCircle2,
+  ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
 import { sql } from "drizzle-orm";
 
 export const metadata = {
-  title: "Platform Overview — Storefy Admin",
+  title: "Platform Overview — STOREFY ADMIN",
 };
 
 export default async function AdminOverviewPage() {
@@ -38,131 +51,118 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-          <ShieldAlert className="h-5 w-5 text-violet-400" />
-          Platform Overview
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Storefy platform-wide tenant telemetry, merchant oversight, and verification queue.
-        </p>
-      </div>
+      <PageHeader
+        title="Platform Overview"
+        description="STOREFY platform-wide tenant telemetry, merchant oversight, and verification queue."
+        breadcrumbs={[
+          { label: "Platform Admin", href: "/admin" },
+          { label: "Overview" },
+        ]}
+        actions={
+          <Badge variant="secondary" dot>
+            Production Node Active
+          </Badge>
+        }
+      />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium text-slate-400">Total Merchants</p>
-              <p className="text-2xl font-bold text-white font-mono mt-1">{totalMerchants}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center">
-              <Building2 className="h-5 w-5" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium text-slate-400">Active Stores</p>
-              <p className="text-2xl font-bold text-emerald-400 font-mono mt-1">{totalStores}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <Store className="h-5 w-5" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium text-slate-400">Supplier Merchants</p>
-              <p className="text-2xl font-bold text-cyan-400 font-mono mt-1">{totalSuppliers}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
-              <Truck className="h-5 w-5" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-slate-800 bg-slate-900/60 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium text-slate-400">Platform Users</p>
-              <p className="text-2xl font-bold text-indigo-400 font-mono mt-1">{totalUsers}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-              <UsersIcon className="h-5 w-5" />
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          label="Total Merchants"
+          value={totalMerchants}
+          helpText="Registered organizations"
+          icon={<Building2 className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Active Stores"
+          value={totalStores}
+          helpText="Live commerce stores"
+          icon={<Store className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Supplier Merchants"
+          value={totalSuppliers}
+          helpText={`${verifiedSuppliers} verified (${pendingSuppliers} pending)`}
+          icon={<Truck className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Platform Users"
+          value={totalUsers}
+          helpText="Active user accounts"
+          icon={<UsersIcon className="h-3.5 w-3.5" />}
+        />
       </div>
 
       {/* Supplier Capability & Verification Status Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-slate-800 bg-slate-900/60">
-          <CardHeader className="pb-3 border-b border-slate-800/80">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Truck className="h-4 w-4 text-cyan-400" />
-              Supplier Verification Queue
-            </CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="flex flex-col justify-between">
+          <CardHeader className="pb-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-primary" />
+                  Supplier Verification Queue
+                </CardTitle>
+                <CardDescription>Merchants awaiting B2B / supplier verification.</CardDescription>
+              </div>
+              <Badge variant={pendingSuppliers > 0 ? "warning" : "success"} dot>
+                {pendingSuppliers} Pending
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent className="pt-4 space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950/60 border border-slate-850">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-amber-400" />
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/70 text-xs">
+              <div className="flex items-center gap-2.5">
+                <Clock className="h-4 w-4 text-amber-500" />
                 <div>
-                  <p className="text-xs font-medium text-white">Pending Verification</p>
-                  <p className="text-[11px] text-slate-400">Merchants awaiting supplier capability approval</p>
+                  <p className="font-medium text-foreground">Pending Verification</p>
+                  <p className="text-[11px] text-muted-foreground">Merchants awaiting supplier capability approval</p>
                 </div>
               </div>
-              <span className="font-mono text-sm font-bold text-amber-400">{pendingSuppliers}</span>
+              <span className="font-semibold text-foreground font-tabular">{pendingSuppliers}</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950/60 border border-slate-850">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/70 text-xs">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 <div>
-                  <p className="text-xs font-medium text-white">Verified Suppliers</p>
-                  <p className="text-[11px] text-slate-400">Active supplier merchants in network</p>
+                  <p className="font-medium text-foreground">Verified Suppliers</p>
+                  <p className="text-[11px] text-muted-foreground">Active suppliers in distribution network</p>
                 </div>
               </div>
-              <span className="font-mono text-sm font-bold text-emerald-400">{verifiedSuppliers}</span>
+              <span className="font-semibold text-foreground font-tabular">{verifiedSuppliers}</span>
             </div>
 
-            <div className="pt-2">
-              <Link
-                href="/admin/suppliers"
-                className="inline-flex items-center justify-center w-full rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500 transition-colors"
-              >
-                Review Verification Queue
+            <Button asChild size="sm" className="w-full">
+              <Link href="/admin/suppliers">
+                <span>Review Verification Queue</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
               </Link>
-            </div>
+            </Button>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-800 bg-slate-900/60">
-          <CardHeader className="pb-3 border-b border-slate-800/80">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-violet-400" />
-              Merchant Architecture
+        <Card className="flex flex-col justify-between">
+          <CardHeader className="pb-3 border-b border-border">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              Platform Account Architecture
             </CardTitle>
+            <CardDescription>Canonical two-tier tenant structure.</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 text-xs text-slate-300 space-y-3">
+          <CardContent className="pt-4 text-xs text-muted-foreground space-y-3">
             <p className="leading-relaxed">
-              Storefy enforces a strict 2-tier account model:
+              STOREFY enforces a strict 2-tier account architecture:
             </p>
-            <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-850 space-y-2 font-mono text-[11px]">
-              <div className="text-violet-300 font-bold">1. PLATFORM ADMIN</div>
-              <div className="pl-3 text-slate-400">Internal oversight, verification, compliance, operations</div>
-              <div className="text-emerald-300 font-bold mt-2">2. MERCHANT</div>
-              <div className="pl-3 text-slate-400">Standard Merchant or Supplier (Account Capability)</div>
-              <div className="pl-6 text-slate-500">└ Shared RBAC: OWNER / ADMIN / MANAGER / STAFF / EDITOR / VIEWER</div>
+            <div className="p-3 rounded-lg bg-muted/40 border border-border/70 space-y-1.5 font-mono text-[11px]">
+              <div className="text-foreground font-semibold">1. PLATFORM ADMIN</div>
+              <div className="pl-3 text-muted-foreground text-[10px]">Internal platform oversight, compliance, and systems</div>
+              <div className="text-foreground font-semibold mt-1">2. MERCHANT</div>
+              <div className="pl-3 text-muted-foreground text-[10px]">Merchant Store or Supplier capability</div>
+              <div className="pl-6 text-muted-foreground text-[10px]">Shared RBAC: OWNER · ADMIN · MANAGER · STAFF · VIEWER</div>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Supplier is an account capability, not a role. Authorized merchant staff operate supplier catalog and fulfillment using standard merchant roles.
+            <p className="text-[11px] leading-relaxed">
+              Supplier is an account capability, not a disconnected role. Merchant staff manage catalog and fulfillment through unified RBAC policies.
             </p>
           </CardContent>
         </Card>

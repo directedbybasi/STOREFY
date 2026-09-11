@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { DashboardProvider, type AuthorizedStoreItem, type DashboardTenantContext } from "./can";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardHeader } from "./dashboard-header";
+import { CommandPalette } from "@/components/ui/command-palette";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import DashboardLoading from "@/app/(dashboard)/loading";
 
@@ -24,6 +25,7 @@ export function DashboardShell({
   const searchParams = useSearchParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
   // Clear navigation state whenever active route or query changes
@@ -40,7 +42,19 @@ export function DashboardShell({
     return () => clearTimeout(timer);
   }, [isNavigating]);
 
-  // Global click & pointer intent interceptor for sub-10ms UI feedback across ALL dashboard links
+  // Global Ctrl/Cmd + K shortcut listener for Command Center
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Global pointer intent interceptor for sub-10ms UI feedback
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
       if (e.button !== 0) return;
@@ -51,7 +65,6 @@ export function DashboardShell({
       try {
         const url = new URL(target.href, window.location.origin);
         if (url.origin === window.location.origin && url.pathname.startsWith("/dashboard")) {
-          // Prefetch on early pointer down (50-150ms before click completes)
           router.prefetch(url.pathname + url.search);
         }
       } catch {
@@ -72,7 +85,6 @@ export function DashboardShell({
           const targetFull = url.pathname + url.search;
 
           if (targetFull !== currentFull) {
-            // Trigger instant navigation feedback (0ms perceived delay)
             setIsNavigating(true);
             router.prefetch(targetFull);
           }
@@ -91,13 +103,11 @@ export function DashboardShell({
     };
   }, [router, pathname]);
 
-  // Proactively pre-warm primary dashboard routes in client memory during idle time
+  // Proactively pre-warm primary routes during idle time
   useEffect(() => {
     const primaryRoutes = [
       "/dashboard",
       "/dashboard/products",
-      "/dashboard/products/categories",
-      "/dashboard/products/collections",
       "/dashboard/orders",
       "/dashboard/inventory",
       "/dashboard/customers",
@@ -105,9 +115,6 @@ export function DashboardShell({
       "/dashboard/marketing",
       "/dashboard/settings",
       "/dashboard/ai",
-      "/dashboard/online-store/themes",
-      "/dashboard/pos",
-      "/dashboard/b2b",
       "/dashboard/settings/payments",
       "/dashboard/settings/shipping",
     ];
@@ -131,13 +138,19 @@ export function DashboardShell({
 
   return (
     <DashboardProvider value={{ tenant, authorizedStores }}>
-      <div className="flex min-h-screen bg-slate-950 text-slate-100 relative">
+      <div className="flex min-h-screen bg-background text-foreground relative">
         {/* Top Navigation Progress Bar */}
         {isNavigating && (
-          <div className="fixed top-0 left-0 right-0 h-[2.5px] z-50 overflow-hidden pointer-events-none">
-            <div className="h-full w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 shadow-[0_0_12px_#10b981] animate-pulse" />
+          <div className="fixed top-0 left-0 right-0 h-[2px] z-50 overflow-hidden pointer-events-none">
+            <div className="h-full w-full bg-primary animate-pulse" />
           </div>
         )}
+
+        {/* Global Command Palette Dialog */}
+        <CommandPalette
+          isOpen={commandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+        />
 
         {/* Desktop Collapsible Sidebar */}
         <DashboardSidebar
@@ -148,19 +161,23 @@ export function DashboardShell({
 
         {/* Mobile Slide-Over Drawer */}
         <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-          <SheetContent side="left" className="p-0 border-r border-slate-800 bg-slate-950 w-72">
+          <SheetContent side="left" className="p-0 border-r border-border bg-card w-64">
             <DashboardSidebar
               collapsed={false}
               onToggleCollapse={() => setMobileDrawerOpen(false)}
               onItemClick={() => setMobileDrawerOpen(false)}
-              className="h-full border-0"
+              className="h-full border-0 w-full"
             />
           </SheetContent>
         </Sheet>
 
-        {/* Main Content Area */}
+        {/* Main Content Area (Responsive 12-Column Alignment) */}
         <div className="flex flex-1 flex-col overflow-x-hidden min-w-0">
-          <DashboardHeader onOpenMobileSidebar={() => setMobileDrawerOpen(true)} />
+          <DashboardHeader
+            onOpenMobileSidebar={() => setMobileDrawerOpen(true)}
+            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+          />
+
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
             {isNavigating ? (
               <div className="animate-in fade-in duration-100">

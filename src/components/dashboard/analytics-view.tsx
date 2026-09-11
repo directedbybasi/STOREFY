@@ -3,17 +3,18 @@
 import React, { useState } from "react";
 import type { DashboardAnalyticsOverview } from "@/modules/marketing/analytics/types";
 import { getDashboardAnalyticsAction } from "@/modules/marketing/analytics/actions";
+import { StatCard } from "@/components/ui/stat-card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
   CreditCard,
   ShoppingBag,
   Users,
   RotateCcw,
-  ArrowRight,
-  BarChart3,
-  Calendar,
   Layers,
-  Sparkles,
+  ArrowUpRight,
+  Filter,
 } from "lucide-react";
 
 interface AnalyticsViewProps {
@@ -39,222 +40,281 @@ export function AnalyticsView({ initialOverview }: AnalyticsViewProps) {
   const { financials, funnel, topProducts, campaigns } = overview;
 
   return (
-    <div className="space-y-8">
-      {/* Time Range Selector */}
+    <div className="space-y-6">
+      {/* Time Range Selector & Controls */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-900/60 border border-slate-800 rounded-xl">
+        <div className="inline-flex items-center p-0.5 rounded-lg bg-muted/60 border border-border">
           {(["today", "7d", "30d"] as const).map((r) => (
             <button
               key={r}
               type="button"
               disabled={isLoading}
               onClick={() => handleTimeRangeChange(r)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 timeRange === r
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-card text-foreground shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {r === "today" ? "Today" : r === "7d" ? "Last 7 Days" : "Last 30 Days"}
+              {r === "today" ? "Today" : r === "7d" ? "Last 7 days" : "Last 30 days"}
             </button>
           ))}
         </div>
 
-        {isLoading && <span className="text-xs text-slate-400 animate-pulse">Refreshing metrics...</span>}
+        {isLoading && (
+          <span className="text-xs text-muted-foreground animate-pulse">
+            Updating metrics...
+          </span>
+        )}
       </div>
 
-      {/* Authoritative Financial KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {/* Gross Sales */}
-        <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-1">
-          <span className="text-[11px] font-medium text-slate-400">Gross Sales</span>
-          <div className="text-xl font-bold text-white font-mono">{financials.grossSalesFormatted}</div>
-          <span className="text-[10px] text-emerald-400">Authoritative orders</span>
-        </div>
-
-        {/* Net Sales */}
-        <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-1">
-          <span className="text-[11px] font-medium text-slate-400">Net Sales</span>
-          <div className="text-xl font-bold text-emerald-400 font-mono">{financials.netSalesFormatted}</div>
-          <span className="text-[10px] text-slate-500">After refunds</span>
-        </div>
-
-        {/* Total Orders */}
-        <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-1">
-          <span className="text-[11px] font-medium text-slate-400">Total Orders</span>
-          <div className="text-xl font-bold text-white font-mono">{financials.totalOrders}</div>
-          <span className="text-[10px] text-slate-500">Confirmed purchases</span>
-        </div>
-
-        {/* Average Order Value (AOV) */}
-        <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-1">
-          <span className="text-[11px] font-medium text-slate-400">Average Order Value</span>
-          <div className="text-xl font-bold text-white font-mono">{financials.averageOrderValueFormatted}</div>
-          <span className="text-[10px] text-slate-500">Revenue per order</span>
-        </div>
-
-        {/* Total Refunds */}
-        <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-1">
-          <span className="text-[11px] font-medium text-slate-400">Total Refunds</span>
-          <div className="text-xl font-bold text-rose-400 font-mono">{financials.totalRefundsFormatted}</div>
-          <span className="text-[10px] text-rose-400/80">Completed payouts</span>
-        </div>
-
-        {/* Total Customers */}
-        <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-1">
-          <span className="text-[11px] font-medium text-slate-400">Customers</span>
-          <div className="text-xl font-bold text-white font-mono">{financials.totalCustomers}</div>
-          <span className="text-[10px] text-slate-500">Store CRM accounts</span>
-        </div>
+      {/* Financial KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <StatCard
+          label="Gross Sales"
+          value={financials.grossSalesFormatted}
+          helpText="Total orders placed"
+          icon={<CreditCard className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Net Sales"
+          value={financials.netSalesFormatted}
+          helpText="Revenue after refunds"
+          icon={<TrendingUp className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Orders"
+          value={financials.totalOrders}
+          helpText="Completed purchases"
+          icon={<ShoppingBag className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Average Order Value"
+          value={financials.averageOrderValueFormatted}
+          helpText="Revenue per order"
+          icon={<CreditCard className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Refunds"
+          value={financials.totalRefundsFormatted}
+          helpText="Total return payouts"
+          icon={<RotateCcw className="h-3.5 w-3.5" />}
+        />
+        <StatCard
+          label="Customers"
+          value={financials.totalCustomers}
+          helpText="Unique CRM accounts"
+          icon={<Users className="h-3.5 w-3.5" />}
+        />
       </div>
 
       {/* Conversion Funnel Section */}
-      <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-6 shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Layers className="h-4 w-4 text-indigo-400" />
-              Conversion Funnel
-            </h3>
-            <p className="text-xs text-slate-400">
-              Visitor progression from product discovery to completed checkout.
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-xs text-slate-400">Overall Conversion: </span>
-            <span className="text-sm font-bold text-emerald-400 font-mono">
-              {funnel.funnelPercentages.overallConversion}%
-            </span>
-          </div>
-        </div>
-
-        {/* Funnel Steps Visualization */}
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-          {/* Step 1: Views */}
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-[11px] text-slate-400 block font-medium">1. Product Views</span>
-            <div className="text-lg font-bold text-white font-mono">{funnel.productViews}</div>
-            <div className="h-1.5 bg-indigo-500/20 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 w-full" />
+      <Card>
+        <CardHeader className="pb-3 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-primary" />
+                Storefront Conversion Funnel
+              </CardTitle>
+              <CardDescription>
+                Visitor progression from discovery through checkout completion.
+              </CardDescription>
             </div>
-            <span className="text-[10px] text-slate-500">100% baseline</span>
-          </div>
-
-          {/* Step 2: Add to Cart */}
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-[11px] text-slate-400 block font-medium">2. Add to Cart</span>
-            <div className="text-lg font-bold text-white font-mono">{funnel.addToCart}</div>
-            <div className="h-1.5 bg-indigo-500/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-indigo-500"
-                style={{ width: `${Math.min(100, funnel.funnelPercentages.viewToCart)}%` }}
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Overall Conversion:</span>
+              <Badge variant="success" dot className="font-tabular text-xs">
+                {funnel.funnelPercentages.overallConversion}%
+              </Badge>
             </div>
-            <span className="text-[10px] text-indigo-400">{funnel.funnelPercentages.viewToCart}% of views</span>
           </div>
-
-          {/* Step 3: Checkout Started */}
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-[11px] text-slate-400 block font-medium">3. Checkout Started</span>
-            <div className="text-lg font-bold text-white font-mono">{funnel.checkoutStarted}</div>
-            <div className="h-1.5 bg-indigo-500/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-indigo-500"
-                style={{ width: `${Math.min(100, funnel.funnelPercentages.cartToCheckout)}%` }}
-              />
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            {/* Step 1: Product Views */}
+            <div className="p-3.5 rounded-lg bg-muted/40 border border-border/70 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+                <span>1. Product Views</span>
+                <span>100%</span>
+              </div>
+              <div className="text-lg font-semibold tracking-tight text-foreground font-tabular">
+                {funnel.productViews.toLocaleString("en-IN")}
+              </div>
+              <div className="h-1 bg-border rounded-full overflow-hidden">
+                <div className="h-full bg-primary w-full rounded-full" />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Baseline views</p>
             </div>
-            <span className="text-[10px] text-indigo-400">{funnel.funnelPercentages.cartToCheckout}% of carts</span>
-          </div>
 
-          {/* Step 4: Payment Started */}
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2">
-            <span className="text-[11px] text-slate-400 block font-medium">4. Payment Started</span>
-            <div className="text-lg font-bold text-white font-mono">{funnel.paymentStarted}</div>
-            <div className="h-1.5 bg-indigo-500/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-indigo-500"
-                style={{ width: `${Math.min(100, funnel.funnelPercentages.checkoutToPayment)}%` }}
-              />
+            {/* Step 2: Added to Cart */}
+            <div className="p-3.5 rounded-lg bg-muted/40 border border-border/70 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+                <span>2. Add to Cart</span>
+                <span className="text-primary font-tabular">
+                  {funnel.funnelPercentages.viewToCart}%
+                </span>
+              </div>
+              <div className="text-lg font-semibold tracking-tight text-foreground font-tabular">
+                {funnel.addToCart.toLocaleString("en-IN")}
+              </div>
+              <div className="h-1 bg-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, funnel.funnelPercentages.viewToCart)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Of total views</p>
             </div>
-            <span className="text-[10px] text-indigo-400">
-              {funnel.funnelPercentages.checkoutToPayment}% of checkouts
-            </span>
-          </div>
 
-          {/* Step 5: Orders Placed */}
-          <div className="p-4 bg-slate-950/80 border border-emerald-800/40 rounded-xl space-y-2">
-            <span className="text-[11px] text-emerald-400 block font-medium">5. Orders Placed</span>
-            <div className="text-lg font-bold text-emerald-400 font-mono">{funnel.ordersPlaced}</div>
-            <div className="h-1.5 bg-emerald-500/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-500"
-                style={{ width: `${Math.min(100, funnel.funnelPercentages.paymentToOrder)}%` }}
-              />
+            {/* Step 3: Checkout Started */}
+            <div className="p-3.5 rounded-lg bg-muted/40 border border-border/70 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+                <span>3. Checkout</span>
+                <span className="text-primary font-tabular">
+                  {funnel.funnelPercentages.cartToCheckout}%
+                </span>
+              </div>
+              <div className="text-lg font-semibold tracking-tight text-foreground font-tabular">
+                {funnel.checkoutStarted.toLocaleString("en-IN")}
+              </div>
+              <div className="h-1 bg-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, funnel.funnelPercentages.cartToCheckout)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Of active carts</p>
             </div>
-            <span className="text-[10px] text-emerald-400">
-              {funnel.funnelPercentages.paymentToOrder}% completed
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Top Products & Campaign Attribution Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Top Products by Volume & Revenue */}
-        <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white">Top Selling Products</h3>
-            <span className="text-xs text-slate-500">By authoritative sales</span>
-          </div>
+            {/* Step 4: Payment Started */}
+            <div className="p-3.5 rounded-lg bg-muted/40 border border-border/70 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
+                <span>4. Payment</span>
+                <span className="text-primary font-tabular">
+                  {funnel.funnelPercentages.checkoutToPayment}%
+                </span>
+              </div>
+              <div className="text-lg font-semibold tracking-tight text-foreground font-tabular">
+                {funnel.paymentStarted.toLocaleString("en-IN")}
+              </div>
+              <div className="h-1 bg-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, funnel.funnelPercentages.checkoutToPayment)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Of checkouts</p>
+            </div>
 
-          {topProducts.length === 0 ? (
-            <p className="text-xs text-slate-500 py-6 text-center">No orders recorded in this date range.</p>
-          ) : (
-            <div className="divide-y divide-slate-800 text-xs">
-              {topProducts.map((p, idx) => (
-                <div key={p.productId} className="py-3 first:pt-0 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-slate-500 w-4">{idx + 1}</span>
-                    <div>
-                      <h4 className="font-semibold text-white truncate max-w-xs">{p.title}</h4>
-                      <p className="text-[11px] text-slate-500">{p.totalQuantity} units sold</p>
+            {/* Step 5: Completed Orders */}
+            <div className="p-3.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                <span>5. Orders</span>
+                <span className="font-tabular">{funnel.funnelPercentages.paymentToOrder}%</span>
+              </div>
+              <div className="text-lg font-semibold tracking-tight text-emerald-700 dark:text-emerald-400 font-tabular">
+                {funnel.ordersPlaced.toLocaleString("en-IN")}
+              </div>
+              <div className="h-1 bg-emerald-500/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, funnel.funnelPercentages.paymentToOrder)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80">Completed</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Products & Campaign Attribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Products */}
+        <Card>
+          <CardHeader className="pb-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Top Selling Products</CardTitle>
+                <CardDescription>Ranked by gross sales volume.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {topProducts.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                No orders recorded in this date range.
+              </div>
+            ) : (
+              <div className="divide-y divide-border text-xs">
+                {topProducts.map((p, idx) => (
+                  <div
+                    key={p.productId}
+                    className="px-4 py-3 flex items-center justify-between hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-muted-foreground w-4 text-center">
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <h4 className="font-medium text-foreground truncate max-w-xs">{p.title}</h4>
+                        <p className="text-[11px] text-muted-foreground font-tabular">
+                          {p.totalQuantity} {p.totalQuantity === 1 ? "unit" : "units"} sold
+                        </p>
+                      </div>
                     </div>
+                    <span className="font-tabular font-semibold text-foreground">
+                      {p.totalRevenueFormatted}
+                    </span>
                   </div>
-                  <span className="font-mono font-bold text-emerald-400">{p.totalRevenueFormatted}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Campaign Attribution */}
-        <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white">Campaign Attribution (UTM)</h3>
-            <span className="text-xs text-slate-500">By traffic source</span>
-          </div>
-
-          {campaigns.length === 0 ? (
-            <p className="text-xs text-slate-500 py-6 text-center">No campaign parameters detected yet.</p>
-          ) : (
-            <div className="divide-y divide-slate-800 text-xs">
-              {campaigns.map((c, idx) => (
-                <div key={`${c.utmSource}-${c.utmCampaign}-${idx}`} className="py-3 first:pt-0 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-white">
-                      {c.utmSource} / <span className="text-slate-400">{c.utmCampaign}</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500">{c.eventsCount} total events recorded</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-mono font-bold text-white">{c.sessionsCount}</span>
-                    <p className="text-[10px] text-slate-500">sessions</p>
-                  </div>
-                </div>
-              ))}
+        <Card>
+          <CardHeader className="pb-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Campaign Attribution</CardTitle>
+                <CardDescription>Traffic sources identified via UTM tracking.</CardDescription>
+              </div>
             </div>
-          )}
-        </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {campaigns.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                No campaign parameters detected yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border text-xs">
+                {campaigns.map((c, idx) => (
+                  <div
+                    key={`${c.utmSource}-${c.utmCampaign}-${idx}`}
+                    className="px-4 py-3 flex items-center justify-between hover:bg-muted/40 transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-medium text-foreground">
+                        {c.utmSource}{" "}
+                        <span className="text-muted-foreground font-normal">/ {c.utmCampaign}</span>
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground font-tabular">
+                        {c.eventsCount} events recorded
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-tabular font-semibold text-foreground">
+                        {c.sessionsCount}
+                      </span>
+                      <p className="text-[10px] text-muted-foreground">sessions</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
