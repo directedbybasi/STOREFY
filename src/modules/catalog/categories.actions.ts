@@ -12,16 +12,43 @@ export interface CategoryTreeNode extends Category {
   children: CategoryTreeNode[];
 }
 
+interface CategoryCacheEntry {
+  data: Category[];
+  timestamp: number;
+}
+
+const categoryCache = new Map<string, CategoryCacheEntry>();
+const CATEGORY_CACHE_TTL_MS = 60 * 1000;
+
+export async function invalidateCategoryCache(storeId?: string) {
+  if (storeId) {
+    categoryCache.delete(storeId);
+  } else {
+    categoryCache.clear();
+  }
+}
+
 /**
  * Returns all categories for the active store in a flat list.
+ * Cached in-memory per store with 60s TTL to eliminate redundant queries during dashboard navigation.
  */
 export async function getCategoriesAction(): Promise<Category[]> {
   const ctx = await requirePermission("catalog:read");
-  return db
+  const storeId = ctx.store.id;
+  const now = Date.now();
+  const cached = categoryCache.get(storeId);
+  if (cached && now - cached.timestamp < CATEGORY_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const result = await db
     .select()
     .from(categories)
-    .where(eq(categories.storeId, ctx.store.id))
+    .where(eq(categories.storeId, storeId))
     .orderBy(asc(categories.sortOrder), asc(categories.name));
+
+  categoryCache.set(storeId, { data: result, timestamp: now });
+  return result;
 }
 
 /**
@@ -102,6 +129,7 @@ export async function createCategoryAction(input: CategoryInput) {
     })
     .returning();
 
+  invalidateCategoryCache(storeId);
   revalidatePath("/dashboard/products");
   revalidatePath("/dashboard/products/categories");
   revalidatePath("/products");
@@ -216,6 +244,7 @@ export async function updateCategoryAction(id: string, input: Partial<CategoryIn
     .where(and(eq(categories.id, id), eq(categories.storeId, storeId)))
     .returning();
 
+  invalidateCategoryCache(storeId);
   revalidatePath("/dashboard/products/categories");
   revalidatePath("/products");
 
@@ -249,6 +278,7 @@ export async function deleteCategoryAction(id: string) {
     .delete(categories)
     .where(and(eq(categories.id, id), eq(categories.storeId, storeId)));
 
+  invalidateCategoryCache(storeId);
   revalidatePath("/dashboard/products/categories");
   revalidatePath("/products");
 

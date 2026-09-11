@@ -118,15 +118,22 @@ export async function getInventoryListAction(
     .where(and(eq(productVariants.storeId, storeId), sql`${inventory.id} IS NULL`));
 
   if (uninitializedVariants.length > 0) {
-    for (const uv of uninitializedVariants) {
-      await ensureInventoryRecord(
-        db,
-        storeId,
-        uv.productId,
-        uv.variantId,
-        uv.threshold ?? 5
-      );
-    }
+    await db
+      .insert(inventory)
+      .values(
+        uninitializedVariants.map((uv) => ({
+          storeId,
+          productId: uv.productId,
+          variantId: uv.variantId,
+          locationId: DEFAULT_LOCATION_ID,
+          onHand: 0,
+          reserved: 0,
+          available: 0,
+          incoming: 0,
+          lowStockThreshold: uv.threshold ?? 5,
+        }))
+      )
+      .onConflictDoNothing();
   }
 
   // 2. Query inventory joined with variant and product

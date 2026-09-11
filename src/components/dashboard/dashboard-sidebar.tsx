@@ -419,7 +419,10 @@ export function DashboardSidebar({
                     item.href === "/dashboard/orders" ||
                     item.href === "/dashboard/products" ||
                     item.href === "/dashboard/customers" ||
-                    item.href === "/dashboard/inventory";
+                    item.href === "/dashboard/inventory" ||
+                    item.href === "/dashboard/analytics" ||
+                    item.href === "/dashboard/settings" ||
+                    item.href === "/dashboard/ai";
 
                   return (
                     <Link

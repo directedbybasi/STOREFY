@@ -100,35 +100,35 @@ export async function getProductsAction(params: GetProductsParams = {}) {
   else if (params.sort === "title-asc") orderByClause = asc(products.title);
   else if (params.sort === "title-desc") orderByClause = desc(products.title);
 
-  // Total count
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(products)
-    .where(whereClause);
+  // Fetch total count and paginated products in parallel
+  const [[{ total }], productRows] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(products)
+      .where(whereClause),
+    db
+      .select({
+        id: products.id,
+        title: products.title,
+        slug: products.slug,
+        status: products.status,
+        basePrice: products.basePrice,
+        compareAtPrice: products.compareAtPrice,
+        sku: products.sku,
+        categoryId: products.categoryId,
+        categoryName: categories.name,
+        createdAt: products.createdAt,
+      })
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .where(whereClause)
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset),
+  ]);
 
   const totalCount = Number(total);
   const totalPages = Math.ceil(totalCount / limit);
-
-  // Fetch products
-  const productRows = await db
-    .select({
-      id: products.id,
-      title: products.title,
-      slug: products.slug,
-      status: products.status,
-      basePrice: products.basePrice,
-      compareAtPrice: products.compareAtPrice,
-      sku: products.sku,
-      categoryId: products.categoryId,
-      categoryName: categories.name,
-      createdAt: products.createdAt,
-    })
-    .from(products)
-    .leftJoin(categories, eq(products.categoryId, categories.id))
-    .where(whereClause)
-    .orderBy(orderByClause)
-    .limit(limit)
-    .offset(offset);
 
   if (productRows.length === 0) {
     return {
@@ -139,26 +139,26 @@ export async function getProductsAction(params: GetProductsParams = {}) {
 
   const productIds = productRows.map((p) => p.id);
 
-  // Fetch primary images for these products
-  const images = await db
-    .select({
-      productId: productImages.productId,
-      imageUrl: productImages.imageUrl,
-      sortOrder: productImages.sortOrder,
-    })
-    .from(productImages)
-    .where(and(eq(productImages.storeId, storeId), inArray(productImages.productId, productIds)))
-    .orderBy(asc(productImages.sortOrder));
-
-  // Fetch variant counts
-  const variantCounts = await db
-    .select({
-      productId: productVariants.productId,
-      variantCount: count(),
-    })
-    .from(productVariants)
-    .where(and(eq(productVariants.storeId, storeId), inArray(productVariants.productId, productIds)))
-    .groupBy(productVariants.productId);
+  // Fetch primary images and variant counts in parallel
+  const [images, variantCounts] = await Promise.all([
+    db
+      .select({
+        productId: productImages.productId,
+        imageUrl: productImages.imageUrl,
+        sortOrder: productImages.sortOrder,
+      })
+      .from(productImages)
+      .where(and(eq(productImages.storeId, storeId), inArray(productImages.productId, productIds)))
+      .orderBy(asc(productImages.sortOrder)),
+    db
+      .select({
+        productId: productVariants.productId,
+        variantCount: count(),
+      })
+      .from(productVariants)
+      .where(and(eq(productVariants.storeId, storeId), inArray(productVariants.productId, productIds)))
+      .groupBy(productVariants.productId),
+  ]);
 
   const imageMap = new Map<string, string>();
   for (const img of images) {

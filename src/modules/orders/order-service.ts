@@ -348,20 +348,31 @@ export async function listStoreOrders(
     conditions.push(sql`${orders.createdAt} <= ${new Date(filters.dateTo)}`);
   }
 
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(orders)
-    .where(and(...conditions));
+  const [[countResult], orderRows] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(orders)
+      .where(and(...conditions)),
+    db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerSnapshot: orders.customerSnapshot,
+        status: orders.status,
+        paymentStatus: orders.paymentStatus,
+        paymentMethod: orders.paymentMethod,
+        fulfillmentStatus: orders.fulfillmentStatus,
+        totalAmount: orders.totalAmount,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .where(and(...conditions))
+      .orderBy(desc(orders.createdAt))
+      .limit(limit)
+      .offset(offset),
+  ]);
 
   const total = countResult?.count || 0;
-
-  const orderRows = await db
-    .select()
-    .from(orders)
-    .where(and(...conditions))
-    .orderBy(desc(orders.createdAt))
-    .limit(limit)
-    .offset(offset);
 
   const orderIds = orderRows.map((o) => o.id);
   const itemsCountMap = new Map<string, number>();

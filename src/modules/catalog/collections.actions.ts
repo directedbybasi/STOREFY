@@ -12,12 +12,34 @@ export interface CollectionListItem extends Collection {
   productsCount: number;
 }
 
+interface CollectionCacheEntry {
+  data: CollectionListItem[];
+  timestamp: number;
+}
+
+const collectionCache = new Map<string, CollectionCacheEntry>();
+const COLLECTION_CACHE_TTL_MS = 60 * 1000;
+
+export async function invalidateCollectionCache(storeId?: string) {
+  if (storeId) {
+    collectionCache.delete(storeId);
+  } else {
+    collectionCache.clear();
+  }
+}
+
 /**
  * Returns all collections for the active store with product count.
+ * Cached in-memory per store with 60s TTL to eliminate redundant queries during dashboard navigation.
  */
 export async function getCollectionsAction(): Promise<CollectionListItem[]> {
   const ctx = await requirePermission("catalog:read");
   const storeId = ctx.store.id;
+  const now = Date.now();
+  const cached = collectionCache.get(storeId);
+  if (cached && now - cached.timestamp < COLLECTION_CACHE_TTL_MS) {
+    return cached.data;
+  }
 
   const collectionRows = await db
     .select()
@@ -25,7 +47,10 @@ export async function getCollectionsAction(): Promise<CollectionListItem[]> {
     .where(eq(collections.storeId, storeId))
     .orderBy(asc(collections.title));
 
-  if (collectionRows.length === 0) return [];
+  if (collectionRows.length === 0) {
+    collectionCache.set(storeId, { data: [], timestamp: now });
+    return [];
+  }
 
   const collectionIds = collectionRows.map((c) => c.id);
 
@@ -43,10 +68,13 @@ export async function getCollectionsAction(): Promise<CollectionListItem[]> {
     countMap.set(pc.collectionId, Number(pc.cnt));
   }
 
-  return collectionRows.map((c) => ({
+  const result = collectionRows.map((c) => ({
     ...c,
     productsCount: countMap.get(c.id) || 0,
   }));
+
+  collectionCache.set(storeId, { data: result, timestamp: now });
+  return result;
 }
 
 /**
@@ -135,6 +163,7 @@ export async function createCollectionAction(input: CollectionInput) {
     }
   }
 
+  invalidateCollectionCache(storeId);
   revalidatePath("/dashboard/products/collections");
   revalidatePath("/collections");
 
@@ -222,6 +251,7 @@ export async function updateCollectionAction(id: string, input: Partial<Collecti
     }
   }
 
+  invalidateCollectionCache(storeId);
   revalidatePath("/dashboard/products/collections");
   revalidatePath("/collections");
   revalidatePath(`/collections/${updated.slug}`);
@@ -245,6 +275,7 @@ export async function deleteCollectionAction(id: string) {
     throw new NotFoundError(`Collection not found or unauthorized: ${id}`);
   }
 
+  invalidateCollectionCache(storeId);
   revalidatePath("/dashboard/products/collections");
   revalidatePath("/collections");
 

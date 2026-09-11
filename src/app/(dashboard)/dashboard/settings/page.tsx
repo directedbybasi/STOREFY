@@ -13,19 +13,19 @@ export const metadata = {
 export default async function SettingsPage() {
   const ctx = await requirePermission("settings:read");
 
-  // Fetch current store row
-  const [storeRow] = await db
-    .select()
-    .from(stores)
-    .where(eq(stores.id, ctx.store.id))
-    .limit(1);
-
-  // Fetch current store_settings row
-  const [settingsRow] = await db
-    .select()
-    .from(storeSettings)
-    .where(eq(storeSettings.storeId, ctx.store.id))
-    .limit(1);
+  // Fetch current store row and store_settings row in parallel
+  const [[storeRow], [settingsRow]] = await Promise.all([
+    db
+      .select()
+      .from(stores)
+      .where(eq(stores.id, ctx.store.id))
+      .limit(1),
+    db
+      .select()
+      .from(storeSettings)
+      .where(eq(storeSettings.storeId, ctx.store.id))
+      .limit(1),
+  ]);
 
   const initialValues: StoreSettingsInput = {
     name: storeRow?.name || ctx.store.name,

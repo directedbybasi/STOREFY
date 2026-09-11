@@ -24,18 +24,21 @@ const client =
     prepare: false,
     ssl: isLocal ? undefined : "require",
     max: 10,
-    idle_timeout: 20,
+    idle_timeout: 300,
     connect_timeout: 10,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.postgresClient = client;
-}
+// Retain client across re-evaluations in both development and production runtimes
+globalForDb.postgresClient = client;
 
 export const db =
   globalForDb.drizzleDb ||
   drizzle(client, { schema });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.drizzleDb = db;
+globalForDb.drizzleDb = db;
+
+// Pre-warm TCP connection and TLS handshake to Supabase pooler asynchronously at startup
+// Eliminates the ~1.3s cold-start handshake latency for the first user query
+if (process.env.NODE_ENV !== "test") {
+  client`SELECT 1 as ping`.catch(() => {});
 }

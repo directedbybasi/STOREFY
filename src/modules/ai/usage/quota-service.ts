@@ -162,34 +162,33 @@ export async function getStoreAiUsageMetrics(storeId: string) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const firstDayOfMonth = todayStr.slice(0, 7) + "-01";
 
-  const [todayUsage] = await db
-    .select()
-    .from(aiUsageLedger)
-    .where(and(eq(aiUsageLedger.storeId, storeId), eq(aiUsageLedger.date, todayStr)))
-    .limit(1);
-
-  const [monthUsage] = await db
-    .select({
-      totalRequests: sql<number>`COALESCE(SUM(${aiUsageLedger.requestCount}), 0)::int`,
-      totalSuccess: sql<number>`COALESCE(SUM(${aiUsageLedger.successCount}), 0)::int`,
-      totalFailures: sql<number>`COALESCE(SUM(${aiUsageLedger.failureCount}), 0)::int`,
-      totalTokens: sql<number>`COALESCE(SUM(${aiUsageLedger.tokensUsed}), 0)::int`,
-    })
-    .from(aiUsageLedger)
-    .where(and(eq(aiUsageLedger.storeId, storeId), sql`${aiUsageLedger.date} >= ${firstDayOfMonth}`));
-
-  // Recent requests breakdown by tool
-  const recentRequests = await db
-    .select({
-      id: aiRequests.id,
-      tool: aiRequests.tool,
-      status: aiRequests.status,
-      createdAt: aiRequests.createdAt,
-    })
-    .from(aiRequests)
-    .where(eq(aiRequests.storeId, storeId))
-    .orderBy(sql`${aiRequests.createdAt} DESC`)
-    .limit(10);
+  const [[todayUsage], [monthUsage], recentRequests] = await Promise.all([
+    db
+      .select()
+      .from(aiUsageLedger)
+      .where(and(eq(aiUsageLedger.storeId, storeId), eq(aiUsageLedger.date, todayStr)))
+      .limit(1),
+    db
+      .select({
+        totalRequests: sql<number>`COALESCE(SUM(${aiUsageLedger.requestCount}), 0)::int`,
+        totalSuccess: sql<number>`COALESCE(SUM(${aiUsageLedger.successCount}), 0)::int`,
+        totalFailures: sql<number>`COALESCE(SUM(${aiUsageLedger.failureCount}), 0)::int`,
+        totalTokens: sql<number>`COALESCE(SUM(${aiUsageLedger.tokensUsed}), 0)::int`,
+      })
+      .from(aiUsageLedger)
+      .where(and(eq(aiUsageLedger.storeId, storeId), sql`${aiUsageLedger.date} >= ${firstDayOfMonth}`)),
+    db
+      .select({
+        id: aiRequests.id,
+        tool: aiRequests.tool,
+        status: aiRequests.status,
+        createdAt: aiRequests.createdAt,
+      })
+      .from(aiRequests)
+      .where(eq(aiRequests.storeId, storeId))
+      .orderBy(sql`${aiRequests.createdAt} DESC`)
+      .limit(10),
+  ]);
 
   return {
     today: {

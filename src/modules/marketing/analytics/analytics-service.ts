@@ -127,42 +127,40 @@ export async function getAuthoritativeFinancialMetrics(
 ): Promise<FinancialMetrics> {
   const startDate = getStartDateForRange(timeRange);
 
-  // 1. Order aggregation
-  const [orderStats] = await db
-    .select({
-      totalOrders: sql<number>`count(*)::int`,
-      grossSalesPaise: sql<number>`coalesce(sum(${orders.totalAmount}), 0)::bigint`,
-    })
-    .from(orders)
-    .where(
-      and(
-        eq(orders.storeId, storeId),
-        gte(orders.createdAt, startDate),
-        sql`${orders.status} != 'CANCELLED'`
-      )
-    );
-
-  // 2. Refund aggregation
-  const [refundStats] = await db
-    .select({
-      totalRefundsPaise: sql<number>`coalesce(sum(${refunds.amount}), 0)::bigint`,
-    })
-    .from(refunds)
-    .where(
-      and(
-        eq(refunds.storeId, storeId),
-        gte(refunds.createdAt, startDate),
-        eq(refunds.status, "COMPLETED")
-      )
-    );
-
-  // 3. Customer count
-  const [customerStats] = await db
-    .select({
-      totalCustomers: sql<number>`count(*)::int`,
-    })
-    .from(customers)
-    .where(eq(customers.storeId, storeId));
+  // Aggregate orders, refunds, and customer counts in parallel
+  const [[orderStats], [refundStats], [customerStats]] = await Promise.all([
+    db
+      .select({
+        totalOrders: sql<number>`count(*)::int`,
+        grossSalesPaise: sql<number>`coalesce(sum(${orders.totalAmount}), 0)::bigint`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.storeId, storeId),
+          gte(orders.createdAt, startDate),
+          sql`${orders.status} != 'CANCELLED'`
+        )
+      ),
+    db
+      .select({
+        totalRefundsPaise: sql<number>`coalesce(sum(${refunds.amount}), 0)::bigint`,
+      })
+      .from(refunds)
+      .where(
+        and(
+          eq(refunds.storeId, storeId),
+          gte(refunds.createdAt, startDate),
+          eq(refunds.status, "COMPLETED")
+        )
+      ),
+    db
+      .select({
+        totalCustomers: sql<number>`count(*)::int`,
+      })
+      .from(customers)
+      .where(eq(customers.storeId, storeId)),
+  ]);
 
   const totalOrders = orderStats?.totalOrders || 0;
   const grossSalesPaise = Number(orderStats?.grossSalesPaise || 0);
