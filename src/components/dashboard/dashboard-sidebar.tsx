@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useDashboard } from "./can";
@@ -350,6 +350,30 @@ export function DashboardSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { tenant } = useDashboard();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  // Clear pending optimistic route when destination pathname is mounted
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  const effectivePath = pendingHref || pathname;
+
+  const handleNavTrigger = (href: string, targetEl?: HTMLElement | null) => {
+    if (targetEl) {
+      document.querySelectorAll('aside a[data-active="true"]').forEach((el) => {
+        el.setAttribute('data-active', 'false');
+        el.removeAttribute('aria-current');
+        el.classList.remove('bg-emerald-500/10', 'text-emerald-400', 'font-semibold');
+        el.classList.add('text-slate-400');
+      });
+      targetEl.setAttribute('data-active', 'true');
+      targetEl.setAttribute('aria-current', 'page');
+      targetEl.classList.add('bg-emerald-500/10', 'text-emerald-400', 'font-semibold');
+      targetEl.classList.remove('text-slate-400');
+    }
+    setPendingHref(href);
+  };
 
   return (
     <aside
@@ -364,9 +388,18 @@ export function DashboardSidebar({
         <Link
           href="/dashboard"
           prefetch={true}
+          aria-current={effectivePath === "/dashboard" ? "page" : undefined}
+          data-active={effectivePath === "/dashboard" ? "true" : "false"}
           onPointerEnter={() => router.prefetch("/dashboard")}
-          onPointerDown={() => router.prefetch("/dashboard")}
+          onPointerDown={(e) => {
+            handleNavTrigger("/dashboard", e.currentTarget);
+            router.prefetch("/dashboard");
+          }}
           onFocus={() => router.prefetch("/dashboard")}
+          onClick={(e) => {
+            handleNavTrigger("/dashboard", e.currentTarget);
+            onItemClick?.();
+          }}
           className="flex items-center gap-2.5 overflow-hidden font-black tracking-tight text-white"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20">
@@ -414,30 +447,28 @@ export function DashboardSidebar({
                 {accessibleItems.map((item) => {
                   const isActive =
                     item.href === "/dashboard"
-                      ? pathname === "/dashboard"
-                      : pathname === item.href || pathname.startsWith(item.href + "/");
+                      ? effectivePath === "/dashboard"
+                      : effectivePath === item.href || effectivePath.startsWith(item.href + "/");
 
                   const Icon = item.icon;
-
-                  const isPrimary =
-                    item.href === "/dashboard" ||
-                    item.href === "/dashboard/orders" ||
-                    item.href === "/dashboard/products" ||
-                    item.href === "/dashboard/customers" ||
-                    item.href === "/dashboard/inventory" ||
-                    item.href === "/dashboard/analytics" ||
-                    item.href === "/dashboard/settings" ||
-                    item.href === "/dashboard/ai";
 
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       prefetch={true}
+                      aria-current={isActive ? "page" : undefined}
+                      data-active={isActive ? "true" : "false"}
                       onPointerEnter={() => router.prefetch(item.href)}
-                      onPointerDown={() => router.prefetch(item.href)}
+                      onPointerDown={(e) => {
+                        handleNavTrigger(item.href, e.currentTarget);
+                        router.prefetch(item.href);
+                      }}
                       onFocus={() => router.prefetch(item.href)}
-                      onClick={onItemClick}
+                      onClick={(e) => {
+                        handleNavTrigger(item.href, e.currentTarget);
+                        onItemClick?.();
+                      }}
                       title={collapsed ? item.title : undefined}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors",
