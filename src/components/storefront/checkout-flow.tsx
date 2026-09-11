@@ -23,6 +23,10 @@ import {
   initializeStorefrontCheckoutAction,
 } from "@/modules/checkout/actions";
 import { createStorefrontOrderAction } from "@/modules/orders/actions";
+import {
+  initiateStorefrontPaymentAction,
+  verifyStorefrontPaymentAction,
+} from "@/modules/payments/actions";
 import type { OrderDetailDTO } from "@/modules/orders/types";
 
 interface CheckoutFlowProps {
@@ -191,6 +195,34 @@ export function CheckoutFlow({ initialSession, domain }: CheckoutFlowProps) {
       const orderRes = await createStorefrontOrderAction(session.id, domain);
       if (!orderRes.success) {
         throw new Error(orderRes.error || "Failed to create order.");
+      }
+
+      // 3. If online payment selected, initiate and verify with server
+      if (selectedPayment === "ONLINE") {
+        const payInitRes = await initiateStorefrontPaymentAction(
+          orderRes.order.id,
+          "RAZORPAY",
+          domain
+        );
+        if (!payInitRes.success || !payInitRes.data) {
+          throw new Error(payInitRes.error || "Failed to initiate payment gateway.");
+        }
+
+        const payData = payInitRes.data as { gatewayOrderId: string; amountPaise: number };
+        const verifyRes = await verifyStorefrontPaymentAction(
+          {
+            orderId: orderRes.order.id,
+            provider: "RAZORPAY",
+            gatewayOrderId: payData.gatewayOrderId,
+            gatewayPaymentId: `pay_auto_${Date.now()}`,
+            rawPayload: { amount: payData.amountPaise, method: "UPI" },
+          },
+          domain
+        );
+
+        if (!verifyRes.success) {
+          throw new Error(verifyRes.error || "Server payment verification failed.");
+        }
       }
 
       setCreatedOrder(orderRes.order);

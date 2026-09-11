@@ -57,6 +57,13 @@
       "when": 1789082402742,
       "tag": "0007_lethal_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789086440184,
+      "tag": "0008_nosy_lila_cheney",
+      "breakpoints": true
     }
   ]
 }

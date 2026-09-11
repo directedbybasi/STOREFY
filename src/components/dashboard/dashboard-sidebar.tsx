@@ -24,6 +24,8 @@ import {
   FolderTree,
   Layers,
   Boxes,
+  CreditCard,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -132,6 +134,20 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/dashboard/settings",
         icon: Settings,
         permission: "settings:read",
+      },
+      {
+        title: "Payment Gateways",
+        href: "/dashboard/settings/payments",
+        icon: CreditCard,
+        permission: "settings:read",
+        badge: "Phase 10",
+      },
+      {
+        title: "Shipping & Delivery",
+        href: "/dashboard/settings/shipping",
+        icon: Truck,
+        permission: "settings:read",
+        badge: "Phase 10",
       },
       {
         title: "Custom Domains",

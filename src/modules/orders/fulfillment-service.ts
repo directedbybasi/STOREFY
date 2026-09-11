@@ -5,6 +5,8 @@ import {
   orderStatusHistory,
   fulfillments,
   fulfillmentItems,
+  shipments,
+  shipmentTrackingEvents,
 } from "@/database/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NotFoundError, ValidationError, ConflictError } from "@/core/errors";
@@ -70,6 +72,30 @@ export async function createFulfillment(
         notes: input.notes || null,
       })
       .returning();
+
+    // 1b. Create carrier shipment record and initial tracking entry
+    const [shipmentRow] = await tx
+      .insert(shipments)
+      .values({
+        storeId,
+        orderId,
+        fulfillmentId: fulfillment.id,
+        carrier: input.carrier,
+        awb: input.trackingNumber || null,
+        carrierStatus: "IN_TRANSIT",
+        trackingUrl: input.trackingUrl || null,
+        metadata: { carrier: input.carrier, trackingNumber: input.trackingNumber },
+      })
+      .returning();
+
+    if (input.trackingNumber) {
+      await tx.insert(shipmentTrackingEvents).values({
+        shipmentId: shipmentRow.id,
+        statusCode: "IN_TRANSIT",
+        message: `Dispatched via ${input.carrier}. Tracking AWB: ${input.trackingNumber}`,
+        timestamp: new Date(),
+      });
+    }
 
     // 2. Update order_items fulfilled quantities and insert fulfillment_items
     for (const reqItem of input.items) {
