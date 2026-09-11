@@ -81,6 +81,16 @@ export const ProductCreateSchema = z.object({
   categoryId: z.string().uuid().optional().nullable(),
   collectionIds: z.array(z.string().uuid()).default([]),
   tags: z.array(z.string()).default([]),
+  features: z.array(z.string()).default([]),
+  specifications: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.string(),
+        confidence: z.enum(["SUPPORTED", "INFERRED", "UNKNOWN"]).optional(),
+      })
+    )
+    .default([]),
   basePriceRupees: z.number().min(0, "Base price must be non-negative"),
   compareAtPriceRupees: z.number().min(0).optional().nullable(),
   costPriceRupees: z.number().min(0).optional().nullable(),

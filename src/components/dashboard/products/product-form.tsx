@@ -41,6 +41,8 @@ import {
   type ProductVariant,
   type ProductImage,
 } from "@/modules/catalog";
+import { AiAssistantModal } from "./ai-assistant-modal";
+import type { AiToolType } from "@/modules/ai/core/types";
 
 interface ProductFormProps {
   initialProduct?: Product;
@@ -174,6 +176,18 @@ export function ProductForm({
   const [seoDescription, setSeoDescription] = useState(
     initialProduct?.seoDescription || ""
   );
+
+  // AI Assistant Modal State
+  const [activeAiTool, setActiveAiTool] = useState<AiToolType | null>(null);
+
+  // Features & Specifications
+  const [features, setFeatures] = useState<string[]>(initialProduct?.features || []);
+  const [newFeatureInput, setNewFeatureInput] = useState("");
+  const [specifications, setSpecifications] = useState<
+    { name: string; value: string; confidence?: "SUPPORTED" | "INFERRED" | "UNKNOWN" }[]
+  >(initialProduct?.specifications || []);
+  const [newSpecName, setNewSpecName] = useState("");
+  const [newSpecValue, setNewSpecValue] = useState("");
 
   // Status & Feedback
   const [status, setStatus] = useState<"DRAFT" | "ACTIVE" | "ARCHIVED">(
@@ -319,6 +333,8 @@ export function ProductForm({
             categoryId: selectedCategory || undefined,
             collectionIds: selectedCollections,
             tags,
+            features,
+            specifications,
             basePriceRupees,
             compareAtPriceRupees: compareAtPriceRupees || undefined,
             costPriceRupees: costPriceRupees || undefined,
@@ -348,6 +364,8 @@ export function ProductForm({
             categoryId: selectedCategory || undefined,
             collectionIds: selectedCollections,
             tags,
+            features,
+            specifications,
             basePriceRupees,
             compareAtPriceRupees: compareAtPriceRupees || undefined,
             costPriceRupees: costPriceRupees || undefined,
@@ -515,9 +533,19 @@ export function ProductForm({
             </CardHeader>
             <CardContent className="space-y-4 text-xs">
               <div>
-                <label className="text-slate-300 font-medium block mb-1.5">
-                  Title <span className="text-red-400">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-slate-300 font-medium">
+                    Title <span className="text-red-400">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setActiveAiTool("AI_PRODUCT_TITLE")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>Generate with AI</span>
+                  </button>
+                </div>
                 <Input
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
@@ -586,9 +614,19 @@ export function ProductForm({
               </div>
 
               <div>
-                <label className="text-slate-300 font-medium block mb-1.5">
-                  Full Description
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-slate-300 font-medium">
+                    Full Description
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setActiveAiTool("AI_PRODUCT_DESCRIPTION")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>Generate with AI</span>
+                  </button>
+                </div>
                 <textarea
                   rows={5}
                   value={description}
@@ -596,6 +634,149 @@ export function ProductForm({
                   placeholder="Detailed product overview, fabric details, sizing recommendations, and care instructions..."
                   className="w-full rounded-md border border-slate-800 bg-slate-950 p-3 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 1B: Features & Specifications */}
+          <Card className="border-slate-800 bg-slate-900/60">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Features & Specifications</CardTitle>
+                  <CardDescription className="text-xs text-slate-400">
+                    Structured highlights and technical attributes.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveAiTool("AI_PRODUCT_FEATURES")}
+                    className="border-indigo-500/30 bg-indigo-950/30 text-indigo-300 hover:bg-indigo-900/40 text-[11px] h-7 gap-1 font-semibold"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>AI Features</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveAiTool("AI_PRODUCT_SPECIFICATIONS")}
+                    className="border-indigo-500/30 bg-indigo-950/30 text-indigo-300 hover:bg-indigo-900/40 text-[11px] h-7 gap-1 font-semibold"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>AI Specs</span>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 text-xs">
+              {/* Features List */}
+              <div className="space-y-2">
+                <label className="text-slate-300 font-medium block">Key Features</label>
+                {features.length === 0 ? (
+                  <p className="text-[11px] text-slate-500 italic">No features added yet. Click &apos;AI Features&apos; or add manually.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {features.map((feat, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-slate-950 border border-slate-800 rounded-lg">
+                        <span className="text-slate-300">• {feat}</span>
+                        <button
+                          type="button"
+                          onClick={() => setFeatures(features.filter((_, i) => i !== idx))}
+                          className="text-slate-500 hover:text-red-400 p-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newFeatureInput}
+                    onChange={(e) => setNewFeatureInput(e.target.value)}
+                    placeholder="Add a new feature bullet point..."
+                    className="bg-slate-950 border-slate-800 text-white text-xs h-8"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newFeatureInput.trim()) {
+                        setFeatures([...features, newFeatureInput.trim()]);
+                        setNewFeatureInput("");
+                      }
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-white text-xs h-8"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              {/* Specifications List */}
+              <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                <label className="text-slate-300 font-medium block">Technical Specifications</label>
+                {specifications.length === 0 ? (
+                  <p className="text-[11px] text-slate-500 italic">No specifications added yet. Click &apos;AI Specs&apos; or add manually.</p>
+                ) : (
+                  <div className="border border-slate-800 rounded-lg overflow-hidden divide-y divide-slate-800/80 bg-slate-950">
+                    {specifications.map((spec, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 text-xs">
+                        <span className="text-slate-400 font-medium">{spec.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-200">{spec.value}</span>
+                          {spec.confidence && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-slate-700 text-slate-400">
+                              {spec.confidence}
+                            </Badge>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setSpecifications(specifications.filter((_, i) => i !== idx))}
+                            className="text-slate-500 hover:text-red-400 p-0.5 ml-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newSpecName}
+                    onChange={(e) => setNewSpecName(e.target.value)}
+                    placeholder="Attribute (e.g. Material)"
+                    className="bg-slate-950 border-slate-800 text-white text-xs h-8 flex-1"
+                  />
+                  <Input
+                    value={newSpecValue}
+                    onChange={(e) => setNewSpecValue(e.target.value)}
+                    placeholder="Value (e.g. Cotton)"
+                    className="bg-slate-950 border-slate-800 text-white text-xs h-8 flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newSpecName.trim() && newSpecValue.trim()) {
+                        setSpecifications([
+                          ...specifications,
+                          { name: newSpecName.trim(), value: newSpecValue.trim(), confidence: "SUPPORTED" },
+                        ]);
+                        setNewSpecName("");
+                        setNewSpecValue("");
+                      }
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-white text-xs h-8"
+                  >
+                    Add
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1053,9 +1234,19 @@ export function ProductForm({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-slate-300 font-medium">Meta Description</label>
-                  <span className="text-[10px] text-slate-500">
-                    {(seoDescription || shortDescription || description).length} / 160 characters
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAiTool("AI_SEO_DESCRIPTION")}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>Generate with AI</span>
+                    </button>
+                    <span className="text-[10px] text-slate-500">
+                      {(seoDescription || shortDescription || description).length} / 160 characters
+                    </span>
+                  </div>
                 </div>
                 <textarea
                   rows={3}
@@ -1128,12 +1319,22 @@ export function ProductForm({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-white">Category</CardTitle>
-                <Link
-                  href="/dashboard/products/categories"
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300"
-                >
-                  Manage
-                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveAiTool("AI_CATEGORY_SUGGESTION")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>Suggest with AI</span>
+                  </button>
+                  <Link
+                    href="/dashboard/products/categories"
+                    className="text-[11px] text-slate-400 hover:text-slate-300"
+                  >
+                    Manage
+                  </Link>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
@@ -1196,7 +1397,17 @@ export function ProductForm({
           {/* Tags */}
           <Card className="border-slate-800 bg-slate-900/60">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-white">Tags</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-white">Tags</CardTitle>
+                <button
+                  type="button"
+                  onClick={() => setActiveAiTool("AI_PRODUCT_TAGS")}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  <span>Generate with AI</span>
+                </button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
               <Input
@@ -1210,6 +1421,40 @@ export function ProductForm({
           </Card>
         </div>
       </div>
+
+      {/* AI Assistant Modal */}
+      {activeAiTool && (
+        <AiAssistantModal
+          tool={activeAiTool}
+          productId={initialProduct?.id}
+          context={{
+            currentTitle: title,
+            currentDescription: description,
+            currentCategoryName: categories.find((c) => c.id === selectedCategory)?.name,
+            currentTags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
+            brand: brand || vendor,
+          }}
+          onApply={(val) => {
+            if (activeAiTool === "AI_PRODUCT_TITLE" && typeof val === "string") {
+              handleTitleChange(val);
+            } else if (activeAiTool === "AI_PRODUCT_DESCRIPTION" && typeof val === "string") {
+              setDescription(val);
+            } else if (activeAiTool === "AI_SEO_DESCRIPTION" && typeof val === "string") {
+              setSeoDescription(val);
+            } else if (activeAiTool === "AI_PRODUCT_FEATURES" && Array.isArray(val)) {
+              setFeatures(val as string[]);
+            } else if (activeAiTool === "AI_PRODUCT_SPECIFICATIONS" && Array.isArray(val)) {
+              setSpecifications(val as { name: string; value: string; confidence?: "SUPPORTED" | "INFERRED" | "UNKNOWN" }[]);
+            } else if (activeAiTool === "AI_PRODUCT_TAGS" && Array.isArray(val)) {
+              setTagsInput((val as string[]).join(", "));
+            } else if (activeAiTool === "AI_CATEGORY_SUGGESTION" && typeof val === "string") {
+              setSelectedCategory(val);
+            }
+            setActiveAiTool(null);
+          }}
+          onClose={() => setActiveAiTool(null)}
+        />
+      )}
     </div>
   );
 }

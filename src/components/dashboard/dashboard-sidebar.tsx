@@ -223,6 +223,18 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    groupName: "AI Intelligence",
+    items: [
+      {
+        title: "AI Product Tools",
+        href: "/dashboard/ai",
+        icon: Sparkles,
+        permission: "catalog:read",
+        badge: "Phase 14",
+      },
+    ],
+  },
+  {
     groupName: "Store Operations",
     items: [
       {

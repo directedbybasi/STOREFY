@@ -56,6 +56,11 @@ export const products = pgTable(
     brand: varchar("brand", { length: 255 }),
     categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
     tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    features: jsonb("features").$type<string[]>().notNull().default([]),
+    specifications: jsonb("specifications")
+      .$type<{ name: string; value: string; confidence?: "SUPPORTED" | "INFERRED" | "UNKNOWN" }[]>()
+      .notNull()
+      .default([]),
     basePrice: bigint("base_price", { mode: "number" }).notNull(), // in Paise (e.g., 99900 = ₹999.00)
     compareAtPrice: bigint("compare_at_price", { mode: "number" }), // in Paise
     costPrice: bigint("cost_price", { mode: "number" }), // in Paise

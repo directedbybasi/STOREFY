@@ -28,3 +28,4 @@ export * from "./reviews";
 export * from "./analytics";
 export * from "./dropshipping";
 export * from "./marketplaces";
+export * from "./ai";
