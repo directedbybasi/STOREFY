@@ -11,23 +11,77 @@ import type { TenantContext, AccountContext } from "./types";
 let cachedAllPermissions: Set<string> | null = null;
 let cachedAllPermissionsExpiresAt = 0;
 
+// In-memory cache for organization stores (30s TTL)
+interface CachedStoresEntry {
+  stores: (typeof stores.$inferSelect)[];
+  expiresAt: number;
+}
+const orgStoresCache = new Map<string, CachedStoresEntry>();
+
+// In-memory cache for resolved AccountContext (15s TTL per auth token)
+interface CachedAccountEntry {
+  account: AccountContext;
+  expiresAt: number;
+}
+const accountContextCache = new Map<string, CachedAccountEntry>();
+
+/**
+ * Invalidate in-memory tenant caches on mutations (store create/update, staff change).
+ */
+export function invalidateTenantMemoryCache(organizationId?: string) {
+  if (organizationId) {
+    orgStoresCache.delete(organizationId);
+  } else {
+    orgStoresCache.clear();
+  }
+  accountContextCache.clear();
+}
+
 /**
  * Request-memoized helper to fetch stores for an organization.
- * Deduplicates multiple queries across layout and page components within a single request.
+ * Deduplicates multiple queries across layout and page components within a single request,
+ * and maintains a 30s in-memory cache across rapid navigations.
  */
 export const getOrgStores = cache(async (organizationId: string) => {
-  return db
+  const now = Date.now();
+  const cached = orgStoresCache.get(organizationId);
+  if (cached && now < cached.expiresAt) {
+    return cached.stores;
+  }
+
+  const result = await db
     .select()
     .from(stores)
     .where(eq(stores.organizationId, organizationId));
+
+  orgStoresCache.set(organizationId, {
+    stores: result,
+    expiresAt: now + 30_000,
+  });
+
+  return result;
 });
 
 /**
  * Resolves the authenticated merchant's user account and organization context.
  * Strictly verifies identity and staff membership at the organization level.
- * Wrapped with React cache() to guarantee request-scoped execution (deduplicated across layout and pages).
+ * Wrapped with React cache() for request-scoped execution and 15s in-memory token caching.
  */
 export const getAccountContext = cache(async (): Promise<AccountContext> => {
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  const tokenKey = allCookies
+    .filter((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"))
+    .map((c) => c.value)
+    .join(":");
+
+  const now = Date.now();
+  if (tokenKey) {
+    const cached = accountContextCache.get(tokenKey);
+    if (cached && now < cached.expiresAt) {
+      return cached.account;
+    }
+  }
   const supabase = await createServerSupabaseClient();
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
@@ -96,7 +150,7 @@ export const getAccountContext = cache(async (): Promise<AccountContext> => {
     permissionSet = new Set(rolePerms.map((p) => p.code));
   }
 
-  return {
+  const accountResult: AccountContext = {
     user: {
       id: dbUser.id,
       email: dbUser.email,
@@ -122,6 +176,19 @@ export const getAccountContext = cache(async (): Promise<AccountContext> => {
     permissions: permissionSet,
     isOwner,
   };
+
+  if (tokenKey) {
+    accountContextCache.set(tokenKey, {
+      account: accountResult,
+      expiresAt: now + 15_000,
+    });
+    if (accountContextCache.size > 500) {
+      const firstKey = accountContextCache.keys().next().value;
+      if (typeof firstKey === "string") accountContextCache.delete(firstKey);
+    }
+  }
+
+  return accountResult;
 });
 
 /**
